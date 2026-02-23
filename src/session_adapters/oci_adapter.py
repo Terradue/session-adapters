@@ -81,20 +81,27 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
     """
     def __init__(
         self,
-        username: str,
-        password: str,
+        hostname: Optional[str] = None,
+        username: Optional[str] = None,
+        password: Optional[str] = None,
         outdir: Optional[str] = None
     ):
         super(OCIAdapter, self).__init__()
 
         self.client = OrasClient()
-        res = self.client.login(
-            hostname='cr.terradue.com',
-            username=username,
-            password=password
-        )
 
-        logger.debug(f"OCI login {username}:{password} response: {res}")
+        if hostname and username and password:
+            logger.debug(f"OCI {username}@{hostname} login...")
+
+            res = self.client.login(
+                hostname=hostname,
+                username=username,
+                password=password
+            )
+
+            logger.debug(f"OCI login {username}@{hostname} response: {res}")
+        else:
+            logger.debug("No OCI login configured")
 
         self.outdir = outdir
 
