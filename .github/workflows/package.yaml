@@ -35,7 +35,7 @@ permissions:
 
 jobs:
   ci:
-    if: startsWith(github.ref, 'refs/heads/')
+    if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/heads/')
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
