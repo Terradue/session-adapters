@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "session-adapters"
 dynamic = ["version"]
-description = ''
+description = "Requests transport adapters for file://, s3://, and oci:// URLs."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
