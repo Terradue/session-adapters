@@ -71,7 +71,9 @@ class _FakeS3Client:
 
 def _new_adapter(monkeypatch):
     fake = _FakeS3Client()
-    monkeypatch.setattr("session_adapters.s3_adapter.boto3.client", lambda *a, **k: fake)
+    monkeypatch.setattr(
+        "session_adapters.s3_adapter.boto3.client", lambda *a, **k: fake
+    )
     return S3Adapter(), fake
 
 
@@ -88,7 +90,9 @@ def test_get_object_uses_query_options(monkeypatch):
     adapter, fake = _new_adapter(monkeypatch)
 
     response = adapter.send(
-        Request("GET", "s3://my-bucket/path/file.txt?range=bytes%3D0-9&versionId=v1").prepare()
+        Request(
+            "GET", "s3://my-bucket/path/file.txt?range=bytes%3D0-9&versionId=v1"
+        ).prepare()
     )
 
     assert response.status_code == HTTPStatus.OK
@@ -140,4 +144,9 @@ def test_list_prefix_returns_json_payload(monkeypatch):
     assert payload["KeyCount"] == 1
     assert payload["Contents"][0]["Key"] == "folder/file.txt"
     assert payload["CommonPrefixes"] == ["folder/sub/"]
-    assert fake.last_list == {"Bucket": "my-bucket", "Prefix": "folder/", "Delimiter": "/", "MaxKeys": 2}
+    assert fake.last_list == {
+        "Bucket": "my-bucket",
+        "Prefix": "folder/",
+        "Delimiter": "/",
+        "MaxKeys": 2,
+    }
