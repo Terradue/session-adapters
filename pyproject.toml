@@ -78,7 +78,7 @@ dependencies = [
 [tool.hatch.envs.test.scripts]
 test = "pytest"
 test-q = "pytest -q"
-test-cov = "pytest --cov=opensearch_gateway"
+test-cov = "pytest --cov=session_adapters"
 test-show-setup = "pytest --setup-show"
 
 [tool.hatch.envs.dev]
