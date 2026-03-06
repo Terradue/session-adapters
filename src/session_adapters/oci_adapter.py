@@ -105,14 +105,19 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
             raise TypeError("Missing repository in oci:// URL")
 
         # repository + optional ref
-        # We consider the last ":" or "@" as the ref separator.
-        ref_idx = max(path.rfind(":"), path.rfind("@"))
-        if ref_idx == -1:
-            repository = path
-            reference = None
+        # Digest refs use "@", while tag refs use ":".
+        digest_idx = path.rfind("@")
+        if digest_idx != -1:
+            repository = path[:digest_idx]
+            reference = path[digest_idx:]  # includes "@"
         else:
-            repository = path[:ref_idx]
-            reference = path[ref_idx:]  # includes ":" or "@"
+            tag_idx = path.rfind(":")
+            if tag_idx == -1:
+                repository = path
+                reference = None
+            else:
+                repository = path[:tag_idx]
+                reference = path[tag_idx:]  # includes ":"
 
         if not repository:
             raise TypeError("Missing repository name in oci:// URL")
@@ -146,7 +151,7 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
                 pulled = Path(data[0])
                 response.send_file_info(pulled)
 
-                if pulled.is_file:
+                if pulled.is_file():
                     response.raw = io.open(pulled, __DEFAULT_READ_MODE__)
                     response.raw.release_conn = response.raw.close
 
