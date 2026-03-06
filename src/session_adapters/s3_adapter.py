@@ -12,37 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from session_adapters.base import (
-    AbstractAdapter,
-    ExtendedResponse
-)
-from session_adapters.http_conts import (
-    DEFAULT_ENCODING,
-    HTTPHeader,
-    ContentType
-)
+from session_adapters.base import AbstractAdapter, ExtendedResponse
+from session_adapters.http_conts import DEFAULT_ENCODING, HTTPHeader, ContentType
 from http import HTTPStatus
 from pydantic import BaseModel
+from pydantic import ConfigDict
 from requests import PreparedRequest
 from requests.adapters import CaseInsensitiveDict
-from typing import (
-    Any,
-    Dict,
-    final,
-    List,
-    Optional
-)
-from urllib.parse import (
-    urlparse,
-    parse_qs
-)
+from typing import Any, Dict, final, List, Optional
+from urllib.parse import urlparse, parse_qs
 
 import boto3
 import io
 
 S3_SCHEME = "s3://"
 
-__DEFAULT_SERVICE_NAME_ = "s3"
+DEFAULT_SERVICE_NAME = "s3"
 
 
 def _to_http_response(boto3_reponse: Any, target_response: ExtendedResponse):
@@ -53,6 +38,8 @@ def _to_http_response(boto3_reponse: Any, target_response: ExtendedResponse):
 
 
 class _S3Request(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     bucket: str
     key: str
     query: Dict[str, List[str]]
@@ -106,7 +93,7 @@ class S3Adapter(AbstractAdapter[_S3Request]):
     ):
         super(S3Adapter, self).__init__()
         self.s3 = boto3.client(
-            __DEFAULT_SERVICE_NAME_,
+            DEFAULT_SERVICE_NAME,
             region_name=region_name,
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
@@ -114,8 +101,6 @@ class S3Adapter(AbstractAdapter[_S3Request]):
             endpoint_url=endpoint_url,
             config=config,
         )
-
-    
 
     def parse_request(self, request: PreparedRequest) -> _S3Request:
         parsed = urlparse(request.url)

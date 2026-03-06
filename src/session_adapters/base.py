@@ -16,43 +16,27 @@ from session_adapters.http_conts import (
     DEFAULT_ENCODING,
     ContentType,
     HTTPHeader,
-    HTTPMethod
+    HTTPMethod,
 )
 from abc import abstractmethod
 from http import HTTPStatus
 from magic import Magic
 from pathlib import Path
-from requests import (
-    PreparedRequest,
-    Response,
-    Session
-)
-from typing import (
-    Any,
-    Dict,
-    final,
-    Generic,
-    TypeVar,
-    Union
-)
+from requests import PreparedRequest, Response
+from typing import Any, Dict, final, Generic, TypeVar, Union
 from datetime import datetime
-from http import HTTPStatus
 
 from requests.adapters import BaseAdapter
-from urllib.parse import urlparse
 
 import mimetypes
 
-__DEFAULT_READ_MODE__ = 'rb'
+__DEFAULT_READ_MODE__ = "rb"
 
-__DATE_HEADER_FORMAT__ = '%a, %d %b %Y %H:%M:%S GMT'
+__DATE_HEADER_FORMAT__ = "%a, %d %b %Y %H:%M:%S GMT"
 
-AdapterRequest = TypeVar('AdapterRequest')
+AdapterRequest = TypeVar("AdapterRequest")
 
-magic = Magic(
-    mime=True,
-    uncompress=True
-)
+magic = Magic(mime=True, uncompress=True)
 
 # Ensure YAML extensions are known by the stdlib
 mimetypes.add_type(ContentType.YAML.value, ".yaml")
@@ -61,10 +45,10 @@ mimetypes.add_type(ContentType.YAML.value, ".cwl")
 
 # Optional: add other common texty types if you care
 mimetypes.add_type(ContentType.JSON.value, ".json")
-mimetypes.add_type(ContentType.XML.value,  ".xml")
+mimetypes.add_type(ContentType.XML.value, ".xml")
+
 
 class ExtendedResponse(Response):
-
     def __init__(self):
         super().__init__()
 
@@ -75,7 +59,7 @@ class ExtendedResponse(Response):
 
     @final
     def send_header(self, name: Union[str, HTTPHeader], value: Any):
-        self.headers[str(name)] = str(value)    
+        self.headers[str(name)] = str(value)
 
     @final
     def send_date_header(self, name: Union[str, HTTPHeader], value: datetime):
@@ -105,30 +89,31 @@ class ExtendedResponse(Response):
         self.send_header(HTTPHeader.CONTENT_TYPE, mime)
 
     @final
-    def send_error(
-        self,
-        http_status: HTTPStatus,
-        error: Any
-    ):
+    def send_error(self, http_status: HTTPStatus, error: Any):
         self.send_status(http_status)
         self._content = str(error).encode(DEFAULT_ENCODING)
         self.send_headers(
             {
                 HTTPHeader.CONTENT_TYPE: ContentType.PLAIN,
-                HTTPHeader.CONTENT_LENGTH: len(self._content)
+                HTTPHeader.CONTENT_LENGTH: len(self._content),
             }
         )
 
-class AbstractAdapter(BaseAdapter, Generic[AdapterRequest]):
 
+class AbstractAdapter(BaseAdapter, Generic[AdapterRequest]):
     def __init__(self):
         super(AbstractAdapter, self).__init__()
 
-        self.allowed_methods = ', '.join(
+        self.allowed_methods = ", ".join(
             list(
                 map(
                     lambda method: method.name,
-                    [ HTTPMethod.GET, HTTPMethod.HEAD, HTTPMethod.PUT, HTTPMethod.DELETE ]
+                    [
+                        HTTPMethod.GET,
+                        HTTPMethod.HEAD,
+                        HTTPMethod.PUT,
+                        HTTPMethod.DELETE,
+                    ],
                 )
             )
         )
@@ -143,14 +128,16 @@ class AbstractAdapter(BaseAdapter, Generic[AdapterRequest]):
         timeout=None,
         verify=True,
         cert=None,
-        proxies=None
+        proxies=None,
     ) -> Response:
         """
         Map the PreparedRequest (s3://bucket/key) to a boto3 call and wrap the
         result into a requests.Response.
         """
         response = ExtendedResponse()
-        response.url = request.url if request.url else '' # should not happen, but IDE complains
+        response.url = (
+            request.url if request.url else ""
+        )  # should not happen, but IDE complains
         response.request = request
         response.send_date_header(HTTPHeader.DATE, datetime.now())
 
@@ -158,32 +145,22 @@ class AbstractAdapter(BaseAdapter, Generic[AdapterRequest]):
             parsed_request = self.parse_request(request=request)
 
             # Normalize method
-            method = HTTPMethod(request.method.upper()) if request.method else HTTPMethod.GET # should not happen
+            method = (
+                HTTPMethod(request.method.upper()) if request.method else HTTPMethod.GET
+            )  # should not happen
 
             match method:
                 case HTTPMethod.GET:
-                    self.do_get(
-                        request=parsed_request,
-                        response=response
-                    )
+                    self.do_get(request=parsed_request, response=response)
 
                 case HTTPMethod.HEAD:
-                    self.do_head(
-                        request=parsed_request,
-                        response=response
-                    )
+                    self.do_head(request=parsed_request, response=response)
 
                 case HTTPMethod.PUT:
-                    self.do_put(
-                        request=parsed_request,
-                        response=response
-                    )
+                    self.do_put(request=parsed_request, response=response)
 
                 case HTTPMethod.DELETE:
-                    self.do_delete(
-                        request=parsed_request,
-                        response=response
-                    )
+                    self.do_delete(request=parsed_request, response=response)
 
                 case _:
                     response.send_status(HTTPStatus.METHOD_NOT_ALLOWED)
@@ -198,36 +175,17 @@ class AbstractAdapter(BaseAdapter, Generic[AdapterRequest]):
         return response
 
     @abstractmethod
-    def parse_request(
-        self,
-        request: PreparedRequest
-    ) -> AdapterRequest:
+    def parse_request(self, request: PreparedRequest) -> AdapterRequest:
         pass
 
-    def do_head(
-        self,
-        request: AdapterRequest,
-        response: ExtendedResponse
-    ):
+    def do_head(self, request: AdapterRequest, response: ExtendedResponse):
         response.send_status(HTTPStatus.NOT_IMPLEMENTED)
 
-    def do_get(
-        self,
-        request: AdapterRequest,
-        response: ExtendedResponse
-    ):
+    def do_get(self, request: AdapterRequest, response: ExtendedResponse):
         response.send_status(HTTPStatus.NOT_IMPLEMENTED)
 
-    def do_put(
-        self,
-        request: AdapterRequest,
-        response: ExtendedResponse
-    ):
+    def do_put(self, request: AdapterRequest, response: ExtendedResponse):
         response.send_status(HTTPStatus.NOT_IMPLEMENTED)
 
-    def do_delete(
-        self,
-        request: AdapterRequest,
-        response: ExtendedResponse
-    ):
+    def do_delete(self, request: AdapterRequest, response: ExtendedResponse):
         response.send_status(HTTPStatus.NOT_IMPLEMENTED)

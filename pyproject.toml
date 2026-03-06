@@ -7,7 +7,7 @@ name = "session-adapters"
 dynamic = ["version"]
 description = ''
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 license = "MIT"
 keywords = []
 authors = [
@@ -17,8 +17,6 @@ authors = [
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
@@ -69,3 +67,28 @@ exclude_lines = [
   "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
 ]
+
+
+[tool.hatch.envs.test]
+description = "Test environment"
+dependencies = [
+  "pytest>=8.0",
+]
+
+[tool.hatch.envs.test.scripts]
+test = "pytest"
+test-q = "pytest -q"
+test-cov = "pytest --cov=opensearch_gateway"
+test-show-setup = "pytest --setup-show"
+
+[tool.hatch.envs.dev]
+description = "Development environment"
+dependencies = [
+  "pytest>=8.0",
+  "ruff",
+]
+
+
+[tool.hatch.envs.dev.scripts]
+lint = "ruff format ."
+check = "ruff check --fix"
