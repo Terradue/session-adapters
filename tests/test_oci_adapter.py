@@ -36,9 +36,7 @@ class _FakeOrasClient:
 
 def _new_adapter(monkeypatch):
     fake = _FakeOrasClient()
-    monkeypatch.setattr(
-        "session_adapters.oci_adapter.OrasClient", lambda *a, **k: fake
-    )
+    monkeypatch.setattr("session_adapters.oci_adapter.OrasClient", lambda *a, **k: fake)
     return OCIAdapter(), fake
 
 
@@ -168,7 +166,10 @@ def test_head_with_manifest_method_populates_headers(monkeypatch):
     assert response.status_code == HTTPStatus.OK
     # The adapter sets this via HTTPHeader.CONTENT_TYPE.name ("CONTENT_TYPE"),
     # not the header value ("Content-Type"), so we check accordingly.
-    assert response.headers.get("CONTENT_TYPE") == "application/vnd.oci.image.manifest.v1+json"
+    assert (
+        response.headers.get("CONTENT_TYPE")
+        == "application/vnd.oci.image.manifest.v1+json"
+    )
     assert response.headers.get("Docker-Content-Digest") == "sha256:deadbeef"
 
 
@@ -192,10 +193,7 @@ def test_put_pushes_artifact(monkeypatch):
     assert response.status_code == HTTPStatus.CREATED
     assert fake.last_push["ref"] == "my-registry.io/my-repo:latest"
     assert fake.last_push["data"] == b"artifact-bytes"
-    assert (
-        fake.last_push["media_type"]
-        == "application/vnd.oci.image.layer.v1.tar+gzip"
-    )
+    assert fake.last_push["media_type"] == "application/vnd.oci.image.layer.v1.tar+gzip"
 
 
 def test_put_uses_default_media_type_when_no_accept_header(monkeypatch):
