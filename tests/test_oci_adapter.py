@@ -1,6 +1,5 @@
 from http import HTTPStatus
 
-import pytest
 from requests import Request
 
 from session_adapters.oci_adapter import OCIAdapter
