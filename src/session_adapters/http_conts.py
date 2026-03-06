@@ -12,17 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from enum import (
-    auto,
-    Enum
-)
+from enum import auto, Enum
 
-DEFAULT_ENCODING = 'utf-8'
+DEFAULT_ENCODING = "utf-8"
+
 
 class HTTPMethod(Enum):
     """
     A comprehensive Enum of HTTP methods.
     """
+
     @staticmethod
     def _generate_next_value_(name, start, count, last_values):
         return name  # ensures auto() = member name as string
@@ -40,6 +39,7 @@ class HTTPMethod(Enum):
     def __str__(self) -> str:
         return self.name
 
+
 class HTTPHeader(str, Enum):
     """
     A comprehensive Enum of HTTP header names, modeled after common fields from
@@ -49,6 +49,7 @@ class HTTPHeader(str, Enum):
         from http_headers import HttpHeader
         headers = {HttpHeader.CONTENT_TYPE: "application/json"}
     """
+
     # --- Request headers ---
     A_IM = "A-IM"
     ACCEPT = "Accept"
@@ -197,18 +198,22 @@ class HTTPHeader(str, Enum):
     def __str__(self) -> str:
         return self.value
 
+
 # Convenience: a frozenset of canonical "entity" headers
-ENTITY_HEADER_SET = frozenset({
-    HTTPHeader.CONTENT_TYPE,
-    HTTPHeader.CONTENT_LENGTH,
-    HTTPHeader.CONTENT_ENCODING,
-    HTTPHeader.CONTENT_LANGUAGE,
-    HTTPHeader.CONTENT_DISPOSITION,
-    HTTPHeader.CONTENT_LOCATION,
-    HTTPHeader.CONTENT_RANGE,
-    HTTPHeader.CONTENT_MD5,
-    HTTPHeader.CONTENT_DIGEST,
-})
+ENTITY_HEADER_SET = frozenset(
+    {
+        HTTPHeader.CONTENT_TYPE,
+        HTTPHeader.CONTENT_LENGTH,
+        HTTPHeader.CONTENT_ENCODING,
+        HTTPHeader.CONTENT_LANGUAGE,
+        HTTPHeader.CONTENT_DISPOSITION,
+        HTTPHeader.CONTENT_LOCATION,
+        HTTPHeader.CONTENT_RANGE,
+        HTTPHeader.CONTENT_MD5,
+        HTTPHeader.CONTENT_DIGEST,
+    }
+)
+
 
 class ContentType(str, Enum):
     # --- Text ---

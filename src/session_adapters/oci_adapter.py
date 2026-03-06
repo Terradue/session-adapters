@@ -15,47 +15,29 @@
 from session_adapters.base import (
     AbstractAdapter,
     ExtendedResponse,
-    __DEFAULT_READ_MODE__
+    __DEFAULT_READ_MODE__,
 )
-from session_adapters.http_conts import (
-    DEFAULT_ENCODING,
-    HTTPHeader,
-    ContentType
-)
+from session_adapters.http_conts import DEFAULT_ENCODING, HTTPHeader, ContentType
 from http import HTTPStatus
 from loguru import logger
 from pathlib import Path
 from oras.client import OrasClient
-from pydantic import (
-    BaseModel,
-    computed_field,
-    ConfigDict
-)
+from pydantic import BaseModel, computed_field, ConfigDict
 from requests import PreparedRequest
 from requests.adapters import CaseInsensitiveDict
-from typing import (
-    Any,
-    Dict,
-    final,
-    List,
-    Optional
-)
-from urllib.parse import (
-    urlparse,
-    parse_qs
-)
+from typing import Any, Dict, final, List, Optional
+from urllib.parse import urlparse, parse_qs
 
 import io
 
-OCI_SCHEME = 'oci://'
+OCI_SCHEME = "oci://"
+
 
 class _OCIRequest(BaseModel):
-    model_config = ConfigDict(
-        arbitrary_types_allowed=True
-    )
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    registry: str 
-    repository: str 
+    registry: str
+    repository: str
     reference: Optional[str] = None
     query: Dict[str, List[str]]
     # from original request
@@ -65,10 +47,11 @@ class _OCIRequest(BaseModel):
     @computed_field
     @property
     def ref(self) -> str:
-        '''
+        """
         The OrasClient typically needs a combined ref like: "{registry}/{repository}:{tag}" or "@sha256:..."
-        '''
+        """
         return f"{self.registry}/{self.repository}{self.reference or ''}"
+
 
 @final
 class OCIAdapter(AbstractAdapter[_OCIRequest]):
@@ -79,12 +62,13 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
     You can also pass username/password/token and, if your OrasClient exposes a
     login() or similar, you may adapt the constructor to call it.
     """
+
     def __init__(
         self,
         hostname: Optional[str] = None,
         username: Optional[str] = None,
         password: Optional[str] = None,
-        outdir: Optional[str] = None
+        outdir: Optional[str] = None,
     ):
         super(OCIAdapter, self).__init__()
 
@@ -94,9 +78,7 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
             logger.debug(f"OCI {username}@{hostname} login...")
 
             res = self.client.login(
-                hostname=hostname,
-                username=username,
-                password=password
+                hostname=hostname, username=username, password=password
             )
 
             logger.debug(f"OCI login {username}@{hostname} response: {res}")
@@ -105,10 +87,7 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
 
         self.outdir = outdir
 
-    def parse_request(
-        self,
-        request: PreparedRequest
-    ) -> _OCIRequest:
+    def parse_request(self, request: PreparedRequest) -> _OCIRequest:
         """
         Parse: oci://registry/repository[:tag|@digest]
         Returns (registry, repository, reference) where reference includes the ":" or "@"
@@ -126,14 +105,19 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
             raise TypeError("Missing repository in oci:// URL")
 
         # repository + optional ref
-        # We consider the last ":" or "@" as the ref separator.
-        ref_idx = max(path.rfind(":"), path.rfind("@"))
-        if ref_idx == -1:
-            repository = path
-            reference = None
+        # Digest refs use "@", while tag refs use ":".
+        digest_idx = path.rfind("@")
+        if digest_idx != -1:
+            repository = path[:digest_idx]
+            reference = path[digest_idx:]  # includes "@"
         else:
-            repository = path[:ref_idx]
-            reference = path[ref_idx:]  # includes ":" or "@"
+            tag_idx = path.rfind(":")
+            if tag_idx == -1:
+                repository = path
+                reference = None
+            else:
+                repository = path[:tag_idx]
+                reference = path[tag_idx:]  # includes ":"
 
         if not repository:
             raise TypeError("Missing repository name in oci:// URL")
@@ -147,14 +131,10 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
             reference=reference,
             query=query,
             headers=request.headers,
-            body=request.body or b""
+            body=request.body or b"",
         )
 
-    def do_get(
-        self,
-        request: _OCIRequest,
-        response: ExtendedResponse
-    ):
+    def do_get(self, request: _OCIRequest, response: ExtendedResponse):
         """
         Pull the artifact. Adapt to your client’s API. The goal is to return raw bytes or a file-like object.
         """
@@ -171,35 +151,35 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
                 pulled = Path(data[0])
                 response.send_file_info(pulled)
 
-                if pulled.is_file:
+                if pulled.is_file():
                     response.raw = io.open(pulled, __DEFAULT_READ_MODE__)
                     response.raw.release_conn = response.raw.close
 
-                    response.send_header(HTTPHeader.CONTENT_LENGTH, str(pulled.stat().st_size))
+                    response.send_header(
+                        HTTPHeader.CONTENT_LENGTH, str(pulled.stat().st_size)
+                    )
                 else:
                     # TODO file listing
-                    logger.warning('TODO: file listing is not supported yet')
+                    logger.warning("TODO: file listing is not supported yet")
                     response.send_status(HTTPStatus.NOT_IMPLEMENTED)
             else:
                 response.send_status(HTTPStatus.NOT_FOUND)
         except ValueError as ve:
             logger.error(ve)
 
-            if 'Unauthorized' in ve.args[0]:
+            if "Unauthorized" in ve.args[0]:
                 response.send_status(HTTPStatus.UNAUTHORIZED)
             else:
                 raise ve
 
-    def do_head(
-        self,
-        request: _OCIRequest,
-        response: ExtendedResponse
-    ):
+    def do_head(self, request: _OCIRequest, response: ExtendedResponse):
         """
         Emulate HEAD via manifest lookup.
         """
         try:
-            manifest = getattr(self.client, "manifest", None) or getattr(self.client, "get_manifest", None)
+            manifest = getattr(self.client, "manifest", None) or getattr(
+                self.client, "get_manifest", None
+            )
 
             if manifest is None:
                 # Fallback: try pull-without-download if your client supports it
@@ -210,7 +190,9 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
                 meta = manifest(request.ref)
                 # You can extract size/digest/mediaType if available to populate headers:
                 if isinstance(meta, dict):
-                    media_type = meta.get("mediaType") or meta.get("config", {}).get("mediaType")
+                    media_type = meta.get("mediaType") or meta.get("config", {}).get(
+                        "mediaType"
+                    )
                     if media_type:
                         response.headers[HTTPHeader.CONTENT_TYPE.name] = media_type
 
@@ -222,23 +204,24 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
         except Exception:
             response.send_status(HTTPStatus.NOT_FOUND)
 
-    def do_put(
-        self,
-        request: _OCIRequest,
-        response: ExtendedResponse
-    ):
+    def do_put(self, request: _OCIRequest, response: ExtendedResponse):
         body = request.body
         if isinstance(request.body, str):
             body = body.encode(DEFAULT_ENCODING)
-        
+
         # Guess media type if provided by caller
-        media_type = request.headers.get(HTTPHeader.ACCEPT.value) or ContentType.OCTET_STREAM.value
+        media_type = (
+            request.headers.get(HTTPHeader.ACCEPT.value)
+            or ContentType.OCTET_STREAM.value
+        )
 
         # Some clients accept: client.push(ref, data=..., media_type=...)
         # Others want: client.push(ref, files={"artifact": (name, bytes, media_type)})
         try:
             # Adjust this call to your client’s signature:
-            self.client.push(request.ref, data=body, media_type=media_type)  # <-- edit if needed
+            self.client.push(
+                request.ref, data=body, media_type=media_type
+            )  # <-- edit if needed
             response.send_status(HTTPStatus.CREATED)
         except TypeError:
             # Fallback: try a more generic signature
@@ -248,14 +231,10 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
             except AttributeError:
                 response.send_error(
                     HTTPStatus.SERVICE_UNAVAILABLE,
-                    "OrasClient does not have a compatible .push(...). Please adapt _oras_put()."
+                    "OrasClient does not have a compatible .push(...). Please adapt _oras_put().",
                 )
 
-    def do_delete(
-        self,
-        request: _OCIRequest,
-        response: ExtendedResponse
-    ):
+    def do_delete(self, request: _OCIRequest, response: ExtendedResponse):
         """
         Delete by reference (if supported).
         """
@@ -266,14 +245,11 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
                 response.send_status(HTTPStatus.NO_CONTENT)
             except Exception as e:
                 # Map some common errors if you can detect them
-                response.send_error(
-                    HTTPStatus.BAD_GATEWAY,
-                    e
-                )
+                response.send_error(HTTPStatus.BAD_GATEWAY, e)
         else:
             response.send_error(
                 HTTPStatus.METHOD_NOT_ALLOWED,
-                "OrasClient does not have a compatible .delete(...). Please adapt _oras_delete()."
+                "OrasClient does not have a compatible .delete(...). Please adapt _oras_delete().",
             )
 
     def close(self):
