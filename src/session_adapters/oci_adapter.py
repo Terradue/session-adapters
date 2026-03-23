@@ -85,7 +85,9 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
                 client: OrasClient = OrasClient(hostname=self.hostname)
                 res = client.login(username=self.username, password=self.password)
 
-                logger.debug(f"OCI login {self.username}@{self.hostname} response: {res}")
+                logger.debug(
+                    f"OCI login {self.username}@{self.hostname} response: {res}"
+                )
 
                 return client
         except Exception as e:
