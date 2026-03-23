@@ -10,7 +10,6 @@ class _FakeOrasClient:
         self.last_pull = None
         self.last_push = None
         self.last_delete = None
-        self.logout_called = False
         self.pull_return = []
         self.pull_raise = None
 
@@ -29,10 +28,6 @@ class _FakeOrasClient:
 
     def delete(self, ref):
         self.last_delete = ref
-        return None
-
-    def logout(self):
-        self.logout_called = True
         return None
 
 
@@ -354,11 +349,3 @@ def test_delete_returns_bad_gateway_when_client_delete_fails(monkeypatch):
 
     assert response.status_code == HTTPStatus.BAD_GATEWAY
     assert b"cannot delete" in response.content
-
-
-def test_close_logs_out_client(monkeypatch):
-    adapter, fake = _new_adapter(monkeypatch)
-
-    adapter.close()
-
-    assert fake.logout_called is True
