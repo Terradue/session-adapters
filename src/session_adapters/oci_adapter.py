@@ -72,20 +72,34 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
     ):
         super(OCIAdapter, self).__init__()
 
-        self.client = OrasClient()
-
-        if hostname and username and password:
-            logger.debug(f"OCI {username}@{hostname} login...")
-
-            res = self.client.login(
-                hostname=hostname, username=username, password=password
-            )
-
-            logger.debug(f"OCI login {username}@{hostname} response: {res}")
-        else:
-            logger.debug("No OCI login configured")
-
+        self.hostname = hostname
+        self.username = username
+        self.password = password
         self.outdir = outdir
+
+    def _get_oras_with_optional_auth(self) -> OrasClient:
+        try:
+            if self.hostname and self.username and self.password:
+                logger.debug(f"OCI {self.username}@{self.hostname} login...")
+
+                client: OrasClient = OrasClient(hostname=self.hostname)
+                res = client.login(username=self.username, password=self.password)
+
+                logger.debug(
+                    f"OCI login {self.username}@{self.hostname} response: {res}"
+                )
+
+                return client
+        except Exception as e:
+            # retry anonymous
+            logger.warning(f"OCI login/auth handshake failed -> retry anonymously: {e}")
+            pass
+
+        return OrasClient()
+
+    def _logout(self, client: OrasClient):
+        if self.hostname:
+            client.logout(self.hostname)
 
     def parse_request(self, request: PreparedRequest) -> _OCIRequest:
         """
@@ -140,8 +154,10 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
         """
         logger.debug(f"Fetching data from: {request.ref}...")
 
+        client: OrasClient = self._get_oras_with_optional_auth()
+
         try:
-            data = self.client.pull(target=request.ref, outdir=self.outdir)
+            data = client.pull(target=request.ref, outdir=self.outdir)
 
             if data:
                 logger.debug(f"Data {data} successfully pulled from: {request.ref}")
@@ -171,20 +187,24 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
                 response.send_status(HTTPStatus.UNAUTHORIZED)
             else:
                 raise ve
+        finally:
+            self._logout(client)
 
     def do_head(self, request: _OCIRequest, response: ExtendedResponse):
         """
         Emulate HEAD via manifest lookup.
         """
+        client: OrasClient = self._get_oras_with_optional_auth()
+
         try:
-            manifest = getattr(self.client, "manifest", None) or getattr(
-                self.client, "get_manifest", None
+            manifest = getattr(client, "manifest", None) or getattr(
+                client, "get_manifest", None
             )
 
             if manifest is None:
                 # Fallback: try pull-without-download if your client supports it
                 # Otherwise, we can attempt pull and discard
-                self.client.pull(request.ref)
+                client.pull(request.ref)
                 # TODO no way to know the headers, here?!?
             else:
                 meta = manifest(request.ref)
@@ -203,6 +223,8 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
             response.send_status(HTTPStatus.OK)
         except Exception:
             response.send_status(HTTPStatus.NOT_FOUND)
+        finally:
+            self._logout(client)
 
     def do_put(self, request: _OCIRequest, response: ExtendedResponse):
         body = request.body
@@ -217,40 +239,47 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
 
         # Some clients accept: client.push(ref, data=..., media_type=...)
         # Others want: client.push(ref, files={"artifact": (name, bytes, media_type)})
+        client: OrasClient = self._get_oras_with_optional_auth()
         try:
             # Adjust this call to your client’s signature:
-            self.client.push(
+            client.push(
                 request.ref, data=body, media_type=media_type
             )  # <-- edit if needed
             response.send_status(HTTPStatus.CREATED)
         except TypeError:
             # Fallback: try a more generic signature
             try:
-                self.client.push(request.ref, body)  # minimal signature
+                client.push(request.ref, body)  # minimal signature
                 response.send_status(HTTPStatus.CREATED)
             except AttributeError:
                 response.send_error(
                     HTTPStatus.SERVICE_UNAVAILABLE,
                     "OrasClient does not have a compatible .push(...). Please adapt _oras_put().",
                 )
+        finally:
+            self._logout(client)
 
     def do_delete(self, request: _OCIRequest, response: ExtendedResponse):
         """
         Delete by reference (if supported).
         """
-        delete_fn = getattr(self.client, "delete", None)
-        if delete_fn:
-            try:
-                delete_fn(request.ref)
-                response.send_status(HTTPStatus.NO_CONTENT)
-            except Exception as e:
-                # Map some common errors if you can detect them
-                response.send_error(HTTPStatus.BAD_GATEWAY, e)
-        else:
-            response.send_error(
-                HTTPStatus.METHOD_NOT_ALLOWED,
-                "OrasClient does not have a compatible .delete(...). Please adapt _oras_delete().",
-            )
+        client: OrasClient = self._get_oras_with_optional_auth()
+        try:
+            delete_fn = getattr(client, "delete", None)
+            if delete_fn:
+                try:
+                    delete_fn(request.ref)
+                    response.send_status(HTTPStatus.NO_CONTENT)
+                except Exception as e:
+                    # Map some common errors if you can detect them
+                    response.send_error(HTTPStatus.BAD_GATEWAY, e)
+            else:
+                response.send_error(
+                    HTTPStatus.METHOD_NOT_ALLOWED,
+                    "OrasClient does not have a compatible .delete(...). Please adapt _oras_delete().",
+                )
+        finally:
+            self._logout(client)
 
     def close(self):
-        self.client.logout()
+        pass
