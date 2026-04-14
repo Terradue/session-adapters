@@ -20,7 +20,6 @@ from session_adapters.http_conts import (
 )
 from abc import abstractmethod
 from http import HTTPStatus
-from magic import Magic
 from pathlib import Path
 from requests import PreparedRequest, Response
 from typing import Any, Dict, final, Generic, TypeVar, Union
@@ -35,8 +34,6 @@ __DEFAULT_READ_MODE__ = "rb"
 __DATE_HEADER_FORMAT__ = "%a, %d %b %Y %H:%M:%S GMT"
 
 AdapterRequest = TypeVar("AdapterRequest")
-
-magic = Magic(mime=True, uncompress=True)
 
 # Ensure YAML extensions are known by the stdlib
 mimetypes.add_type(ContentType.YAML.value, ".yaml")
@@ -80,13 +77,12 @@ class ExtendedResponse(Response):
         self.send_status(HTTPStatus.OK)
         self.send_date_header(HTTPHeader.LAST_MODIFIED, mod_time)
 
-        mime = magic.from_file(path)
-        if not mime or ContentType.PLAIN == ContentType(mime):
-            guess_mime = mimetypes.guess_type(path)
-            if guess_mime:
-                mime = guess_mime[0]
+        guess_mime = mimetypes.guess_type(path)
 
-        self.send_header(HTTPHeader.CONTENT_TYPE, mime)
+        for mime in guess_mime:
+            if mime:
+                self.send_header(HTTPHeader.CONTENT_TYPE, mime)
+                break
 
     @final
     def send_error(self, http_status: HTTPStatus, error: Any):
