@@ -30,7 +30,6 @@ dependencies = [
   "loguru",
   "oras",
   "pydantic",
-  "python-magic",
 ]
 
 [project.urls]

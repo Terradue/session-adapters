@@ -12,16 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-version: '3'
+version: 2
 
-includes:
-  quality: https://raw.githubusercontent.com/Terradue/taskfile-utils/refs/heads/main/quality.yaml
-
-tasks:
-
-  default:
-    cmds:
-    - task: quality:test
-    - task: quality:check
-    - task: quality:lint
-    
+updates:
+- package-ecosystem: "pip"
+  directory: "/"
+  schedule:
+    interval: "daily"
+  open-pull-requests-limit: 10
+  commit-message:
+    prefix: "build"
+  labels:
+  - "dependencies"
+  allow:
+  - dependency-type: "direct"
