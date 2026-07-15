@@ -3,7 +3,7 @@
 [![PyPI - Version](https://img.shields.io/pypi/v/session-adapters.svg)](https://pypi.org/project/session-adapters)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/session-adapters.svg)](https://pypi.org/project/session-adapters)
 
-Requests transport adapters for bearer-authenticated `http(s)://` requests and `file://`,
+Requests transport adapters for bearer-authenticated `http(s)://`, `file://`,
 `s3://`, and `oci://` URLs.
 
 ## Why This Project
