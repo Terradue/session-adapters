@@ -12,4 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = "0.4.0"
+from requests import PreparedRequest, Response
+from requests.adapters import HTTPAdapter
+
+
+class BearerAuthHTTPAdapter(HTTPAdapter):
+    def __init__(self, token: str, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.token = token
+
+    def send(
+        self,
+        request: PreparedRequest,
+        *args,
+        **kwargs,
+    ) -> Response:
+        request.headers["Authorization"] = f"Bearer {self.token}"
+        return super().send(request, *args, **kwargs)
