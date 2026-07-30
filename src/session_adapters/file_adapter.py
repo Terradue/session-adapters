@@ -12,25 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import errno
+from http import HTTPStatus
+from pathlib import Path
+from shutil import rmtree
+from typing import Any, final
+from urllib.parse import urlparse
+
+from loguru import logger
+from pydantic import BaseModel
+from requests import PreparedRequest
+
 from session_adapters.base import (
+    __DEFAULT_READ_MODE__,
     AbstractAdapter,
     ExtendedResponse,
-    __DEFAULT_READ_MODE__,
 )
 from session_adapters.http_conts import HTTPHeader
-from http import HTTPStatus
-from loguru import logger
-from pathlib import Path
-from pydantic import BaseModel
-from shutil import rmtree
-from requests import PreparedRequest
-from urllib.parse import urlparse
-from typing import Any, final
-
-import errno
-import io
-
-import os
 
 __DEFAULT_WRITE_MODE__ = "w"
 
@@ -44,7 +42,7 @@ class _FileRequest(BaseModel):
 @final
 class FileAdapter(AbstractAdapter[_FileRequest]):
     def __init__(self):
-        super(FileAdapter, self).__init__()
+        super().__init__()
 
     def parse_request(self, request: PreparedRequest) -> _FileRequest:
         url_parts = urlparse(request.url)
@@ -65,7 +63,7 @@ class FileAdapter(AbstractAdapter[_FileRequest]):
                     HTTPStatus.NOT_FOUND,
                     f"File {request.path} does not exist on the local File System",
                 )
-        except IOError as ioe:
+        except OSError as ioe:
             match ioe.errno:
                 case errno.EACCES:
                     response.send_error(HTTPStatus.FORBIDDEN, ioe)
@@ -82,7 +80,8 @@ class FileAdapter(AbstractAdapter[_FileRequest]):
                 response.send_file_info(request.path)
 
                 if request.path.is_file():
-                    response.raw = io.open(request.path, __DEFAULT_READ_MODE__)
+                    # The response owns this stream and closes it after consumption.
+                    response.raw = request.path.open(__DEFAULT_READ_MODE__)  # noqa: SIM115
                     response.raw.release_conn = response.raw.close
 
                     response.send_header(
@@ -97,7 +96,7 @@ class FileAdapter(AbstractAdapter[_FileRequest]):
                     HTTPStatus.NOT_FOUND,
                     f"File {request.path} does not exist on the local File System",
                 )
-        except IOError as ioe:
+        except OSError as ioe:
             match ioe.errno:
                 case errno.EACCES:
                     response.send_error(HTTPStatus.FORBIDDEN, ioe)
@@ -116,8 +115,8 @@ class FileAdapter(AbstractAdapter[_FileRequest]):
                 if request.path.is_dir():
                     rmtree(request.path.absolute())
                 elif request.path.is_file():
-                    os.remove(request.path.absolute())
-        except IOError:
+                    request.path.unlink()
+        except OSError:
             pass
 
     def do_put(self, request: _FileRequest, response: ExtendedResponse):
@@ -126,7 +125,7 @@ class FileAdapter(AbstractAdapter[_FileRequest]):
         try:
             with request.path.open(__DEFAULT_WRITE_MODE__) as f:
                 f.write(request.body)
-        except IOError as ioe:
+        except OSError as ioe:
             response.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, ioe)
 
     def close(self):

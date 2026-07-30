@@ -13,13 +13,14 @@
 # limitations under the License.
 import sys
 import types
+from typing import Any
 
 
 def _install_magic_stub() -> None:
     if "magic" in sys.modules:
         return
 
-    magic_mod = types.ModuleType("magic")
+    magic_mod: Any = types.ModuleType("magic")
 
     class _Magic:
         def __init__(self, mime=True, uncompress=True):
@@ -37,8 +38,8 @@ def _install_oras_stub() -> None:
     if "oras.client" in sys.modules:
         return
 
-    oras_mod = types.ModuleType("oras")
-    client_mod = types.ModuleType("oras.client")
+    oras_mod: Any = types.ModuleType("oras")
+    client_mod: Any = types.ModuleType("oras.client")
 
     class _OrasClient:
         def login(self, hostname, username, password):

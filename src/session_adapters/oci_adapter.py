@@ -12,23 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from session_adapters.base import (
-    AbstractAdapter,
-    ExtendedResponse,
-    __DEFAULT_READ_MODE__,
-)
-from session_adapters.http_conts import DEFAULT_ENCODING, HTTPHeader, ContentType
 from http import HTTPStatus
-from loguru import logger
 from pathlib import Path
-from oras.client import OrasClient
-from pydantic import BaseModel, computed_field, ConfigDict
+from typing import Any, final
+from urllib.parse import parse_qs, urlparse
+
+from loguru import logger
+from oras.client import OrasClient  # type: ignore[import-untyped]
+from pydantic import BaseModel, ConfigDict, computed_field
 from requests import PreparedRequest
 from requests.adapters import CaseInsensitiveDict
-from typing import Any, Dict, final, List, Optional
-from urllib.parse import urlparse, parse_qs
 
-import io
+from session_adapters.base import (
+    __DEFAULT_READ_MODE__,
+    AbstractAdapter,
+    ExtendedResponse,
+)
+from session_adapters.http_conts import DEFAULT_ENCODING, ContentType, HTTPHeader
 
 OCI_SCHEME = "oci://"
 
@@ -38,13 +38,13 @@ class _OCIRequest(BaseModel):
 
     registry: str
     repository: str
-    reference: Optional[str] = None
-    query: Dict[str, List[str]]
+    reference: str | None = None
+    query: dict[str, list[str]]
     # from original request
     headers: CaseInsensitiveDict
     body: Any
 
-    @computed_field
+    @computed_field  # type: ignore[prop-decorator]
     @property
     def ref(self) -> str:
         """
@@ -65,12 +65,12 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
 
     def __init__(
         self,
-        hostname: Optional[str] = None,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
-        outdir: Optional[str] = None,
+        hostname: str | None = None,
+        username: str | None = None,
+        password: str | None = None,
+        outdir: str | None = None,
     ):
-        super(OCIAdapter, self).__init__()
+        super().__init__()
 
         self.hostname = hostname
         self.username = username
@@ -168,7 +168,8 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
                 response.send_file_info(pulled)
 
                 if pulled.is_file():
-                    response.raw = io.open(pulled, __DEFAULT_READ_MODE__)
+                    # The response owns this stream and closes it after consumption.
+                    response.raw = pulled.open(__DEFAULT_READ_MODE__)  # noqa: SIM115
                     response.raw.release_conn = response.raw.close
 
                     response.send_header(

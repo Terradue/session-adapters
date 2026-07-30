@@ -38,11 +38,11 @@ class _FakeOrasClient:
 
     def push(self, ref, data=None, media_type=None):
         self.last_push = {"ref": ref, "data": data, "media_type": media_type}
-        return None
+        return
 
     def delete(self, ref):
         self.last_delete = ref
-        return None
+        return
 
 
 def _new_adapter(monkeypatch):
@@ -289,7 +289,7 @@ def test_put_falls_back_to_minimal_push_signature(monkeypatch):
         if calls["count"] == 1:
             raise TypeError("unsupported signature")
         fake.last_push = {"ref": args[0], "data": args[1], "media_type": None}
-        return None
+        return
 
     fake.push = _push
 
