@@ -7,7 +7,8 @@ repo_name: Terradue/session-adapters
 edit_uri: edit/main/docs/
 
 theme:
-  name: material
+  name: readthedocs
+  logo: imgs/icon-eoap.png
   features:
     - content.code.copy
     - content.code.select
