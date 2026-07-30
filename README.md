@@ -6,6 +6,8 @@
 Requests transport adapters for bearer-authenticated `http(s)://`, `file://`,
 `s3://`, and `oci://` URLs.
 
+**[Read the documentation](https://terradue.github.io/session-adapters/)**
+
 ## Why This Project
 
 `session-adapters` lets you use a standard `requests.Session` with authenticated
@@ -99,6 +101,18 @@ Run lint checks:
 ```bash
 hatch run dev:check
 ruff format --check .
+```
+
+Preview the documentation:
+
+```bash
+hatch run docs:serve
+```
+
+Build the documentation with strict validation:
+
+```bash
+hatch run docs:build
 ```
 
 ## License

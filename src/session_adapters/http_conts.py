@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from enum import auto, Enum
+from enum import Enum, auto
 
 DEFAULT_ENCODING = "utf-8"
 
@@ -222,6 +222,7 @@ class ContentType(str, Enum):
     CSS = "text/css"
     CSV = "text/csv"
     TEXT_JAVASCRIPT = "text/javascript"
+    TEXT_YAML = "text/yaml"  # gh-pages on github serves "text/yaml"
     MARKDOWN = "text/markdown"
     XML_TEXT = "text/xml"
 

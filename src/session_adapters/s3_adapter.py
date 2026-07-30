@@ -12,18 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from session_adapters.base import AbstractAdapter, ExtendedResponse
-from session_adapters.http_conts import DEFAULT_ENCODING, HTTPHeader, ContentType
-from http import HTTPStatus
-from pydantic import BaseModel
-from pydantic import ConfigDict
-from requests import PreparedRequest
-from requests.adapters import CaseInsensitiveDict
-from typing import Any, Dict, final, List, Optional
-from urllib.parse import urlparse, parse_qs
-
-import boto3
 import io
+from contextlib import suppress
+from http import HTTPStatus
+from typing import Any, final
+from urllib.parse import parse_qs, urlparse
+
+import boto3  # type: ignore[import-untyped]
+from pydantic import BaseModel, ConfigDict
+from requests import PreparedRequest
+from requests.structures import CaseInsensitiveDict
+
+from session_adapters.base import AbstractAdapter, ExtendedResponse
+from session_adapters.http_conts import DEFAULT_ENCODING, ContentType, HTTPHeader
 
 S3_SCHEME = "s3://"
 
@@ -42,7 +43,7 @@ class _S3Request(BaseModel):
 
     bucket: str
     key: str
-    query: Dict[str, List[str]]
+    query: dict[str, list[str]]
     # from original request
     headers: CaseInsensitiveDict
     body: Any
@@ -68,10 +69,8 @@ class _StreamingBodyAdapter(io.RawIOBase):
 
     def close(self):
         self._closed = True
-        try:
+        with suppress(Exception):
             self._body.close()
-        except Exception:
-            pass
 
 
 @final
@@ -84,14 +83,14 @@ class S3Adapter(AbstractAdapter[_S3Request]):
 
     def __init__(
         self,
-        region_name: Optional[str] = None,
-        aws_access_key_id: Optional[str] = None,
-        aws_secret_access_key: Optional[str] = None,
-        aws_session_token: Optional[str] = None,
-        endpoint_url: Optional[str] = None,
-        config: Optional[object] = None,
+        region_name: str | None = None,
+        aws_access_key_id: str | None = None,
+        aws_secret_access_key: str | None = None,
+        aws_session_token: str | None = None,
+        endpoint_url: str | None = None,
+        config: object | None = None,
     ):
-        super(S3Adapter, self).__init__()
+        super().__init__()
         self.s3 = boto3.client(
             DEFAULT_SERVICE_NAME,
             region_name=region_name,

@@ -12,22 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import mimetypes
+from abc import abstractmethod
+from datetime import datetime
+from http import HTTPStatus
+from pathlib import Path
+from typing import Any, Generic, TypeVar, final
+
+from requests import PreparedRequest, Response
+from requests.adapters import BaseAdapter
+
 from session_adapters.http_conts import (
     DEFAULT_ENCODING,
     ContentType,
     HTTPHeader,
     HTTPMethod,
 )
-from abc import abstractmethod
-from http import HTTPStatus
-from pathlib import Path
-from requests import PreparedRequest, Response
-from typing import Any, Dict, final, Generic, TypeVar, Union
-from datetime import datetime
-
-from requests.adapters import BaseAdapter
-
-import mimetypes
 
 __DEFAULT_READ_MODE__ = "rb"
 
@@ -55,15 +55,15 @@ class ExtendedResponse(Response):
         self.reason = http_status.phrase
 
     @final
-    def send_header(self, name: Union[str, HTTPHeader], value: Any):
+    def send_header(self, name: str | HTTPHeader, value: Any):
         self.headers[str(name)] = str(value)
 
     @final
-    def send_date_header(self, name: Union[str, HTTPHeader], value: datetime):
+    def send_date_header(self, name: str | HTTPHeader, value: datetime):
         self.send_header(name=name, value=value.strftime(__DATE_HEADER_FORMAT__))
 
     @final
-    def send_headers(self, headers_dict: Dict[HTTPHeader, Any]):
+    def send_headers(self, headers_dict: dict[HTTPHeader, Any]):
         if headers_dict:
             for key, value in headers_dict.items():
                 self.send_header(name=key, value=value)
@@ -98,20 +98,18 @@ class ExtendedResponse(Response):
 
 class AbstractAdapter(BaseAdapter, Generic[AdapterRequest]):
     def __init__(self):
-        super(AbstractAdapter, self).__init__()
+        super().__init__()
 
         self.allowed_methods = ", ".join(
-            list(
-                map(
-                    lambda method: method.name,
-                    [
-                        HTTPMethod.GET,
-                        HTTPMethod.HEAD,
-                        HTTPMethod.PUT,
-                        HTTPMethod.DELETE,
-                    ],
+            [
+                method.name
+                for method in (
+                    HTTPMethod.GET,
+                    HTTPMethod.HEAD,
+                    HTTPMethod.PUT,
+                    HTTPMethod.DELETE,
                 )
-            )
+            ]
         )
 
     # ----- requests.Adapter API -----

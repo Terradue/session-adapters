@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add a MkDocs Material documentation site organized according to Diátaxis,
+  with tutorials, how-to guides, reference, and explanation.
+
 ### Changed
 
 ### Deprecated
@@ -18,6 +21,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+
+## [0.5.0] - 2026-07-30
+
+### Added
+
+- gh-pages on github serves "text/yaml"
+
+### Changed
+
+- Stronger code chekers with Ruff+McCabe & Bandit
 
 ## [0.4.0] - 2026-07-15
 
