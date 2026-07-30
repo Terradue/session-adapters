@@ -35,7 +35,7 @@ dependencies = [
 ]
 
 [project.urls]
-Documentation = "https://github.com/Terradue/session-adapters#README.md"
+Documentation = "https://terradue.github.io/session-adapters/"
 Issues = "https://github.com/Terradue/session-adapters/issues"
 Source = "https://github.com/Terradue/session-adapters"
 
@@ -133,3 +133,14 @@ typecheck = "mypy --install-types --non-interactive {args:src tests}"
 lint = "ruff format {args:src tests}"
 check = "ruff check --fix {args:src tests}"
 security = "bandit -r {args:src}"
+
+[tool.hatch.envs.docs]
+dependencies = [
+  "mkdocs>=1.6,<2",
+  "mkdocs-material>=9.6,<10",
+  "mkdocstrings[python]>=0.27,<1",
+]
+
+[tool.hatch.envs.docs.scripts]
+build = "mkdocs build --strict {args}"
+serve = "mkdocs serve {args}"

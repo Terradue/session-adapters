@@ -1,0 +1,100 @@
+site_name: session-adapters
+site_description: Requests transport adapters for HTTP, local files, S3, and OCI registries
+site_author: Fabrice Brito, Simone Tripodi
+site_url: https://terradue.github.io/session-adapters/
+repo_url: https://github.com/Terradue/session-adapters
+repo_name: Terradue/session-adapters
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  features:
+    - content.code.copy
+    - content.code.select
+    - navigation.footer
+    - navigation.indexes
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+    - search.suggest
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+nav:
+  - Home: index.md
+  - Tutorials:
+      - tutorials/index.md
+      - Build your first multi-backend session: tutorials/first-session.md
+  - How-to guides:
+      - how-to/index.md
+      - Add bearer authentication: how-to/bearer-auth.md
+      - Work with local files: how-to/local-files.md
+      - Read and write S3 objects: how-to/s3.md
+      - Use an S3-compatible service: how-to/s3-compatible.md
+      - Work with OCI artifacts: how-to/oci.md
+  - Reference:
+      - reference/index.md
+      - URL schemes: reference/url-schemes.md
+      - Methods and responses: reference/methods-and-responses.md
+      - BearerAuthHTTPAdapter: reference/bearer-auth-http-adapter.md
+      - FileAdapter: reference/file-adapter.md
+      - S3Adapter: reference/s3-adapter.md
+      - OCIAdapter: reference/oci-adapter.md
+      - Current limitations: reference/limitations.md
+  - Explanation:
+      - explanation/index.md
+      - One session, several transports: explanation/unified-session.md
+      - Authentication models: explanation/authentication.md
+      - Response and error mapping: explanation/response-model.md
+  - Contributing: contributing.md
+  - Changelog: changelog.md
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: google
+            heading_level: 2
+            members_order: source
+            merge_init_into_class: true
+            separate_signature: true
+            show_bases: true
+            show_root_heading: true
+            show_source: false
+
+validation:
+  links:
+    absolute_links: relative_to_docs
+    anchors: warn
+    unrecognized_links: warn
+
+copyright: <a href="https://www.apache.org/licenses/LICENSE-2.0"><img src="https://img.shields.io/badge/license-Apache%20License%202.0-blue"" alt="Apache License, Version 2.0" /></a>

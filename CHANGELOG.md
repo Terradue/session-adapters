@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add a MkDocs Material documentation site organized according to Diátaxis,
+  with tutorials, how-to guides, reference, and explanation.
+
 ### Changed
 
 ### Deprecated
