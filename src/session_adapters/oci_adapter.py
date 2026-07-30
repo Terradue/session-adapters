@@ -21,7 +21,7 @@ from loguru import logger
 from oras.client import OrasClient  # type: ignore[import-untyped]
 from pydantic import BaseModel, ConfigDict, computed_field
 from requests import PreparedRequest
-from requests.adapters import CaseInsensitiveDict
+from requests.structures import CaseInsensitiveDict
 
 from session_adapters.base import (
     __DEFAULT_READ_MODE__,

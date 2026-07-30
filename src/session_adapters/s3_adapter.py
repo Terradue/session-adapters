@@ -21,7 +21,7 @@ from urllib.parse import parse_qs, urlparse
 import boto3  # type: ignore[import-untyped]
 from pydantic import BaseModel, ConfigDict
 from requests import PreparedRequest
-from requests.adapters import CaseInsensitiveDict
+from requests.structures import CaseInsensitiveDict
 
 from session_adapters.base import AbstractAdapter, ExtendedResponse
 from session_adapters.http_conts import DEFAULT_ENCODING, ContentType, HTTPHeader
