@@ -78,19 +78,8 @@ markdown_extensions:
 
 plugins:
   - search
-  - mkdocstrings:
-      handlers:
-        python:
-          paths: [src]
-          options:
-            docstring_style: google
-            heading_level: 2
-            members_order: source
-            merge_init_into_class: true
-            separate_signature: true
-            show_bases: true
-            show_root_heading: true
-            show_source: false
+  - mermaid2:
+      version: 11.4.1
 
 validation:
   links:
