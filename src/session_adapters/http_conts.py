@@ -222,6 +222,7 @@ class ContentType(str, Enum):
     CSS = "text/css"
     CSV = "text/csv"
     TEXT_JAVASCRIPT = "text/javascript"
+    TEXT_YAML = "text/yaml" # gh-pages on github serves "text/yaml"
     MARKDOWN = "text/markdown"
     XML_TEXT = "text/xml"
 
