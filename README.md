@@ -117,4 +117,6 @@ hatch run docs:build
 
 ## License
 
-`session-adapters` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
+## License
+
+[![Apache License, Version 2.0](https://img.shields.io/badge/license-Apache%20License%202.0-blue)](https://www.apache.org/licenses/LICENSE-2.0)
