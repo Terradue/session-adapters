@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="author" content="Fabrice Brito, Simone Tripodi" /><link rel="canonical" href="https://terradue.github.io/session-adapters/how-to/local-files/" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>Work with local files - session-adapters</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Work with local files";
+        var mkdocs_page_input_path = "how-to/local-files.md";
+        var mkdocs_page_url = "/session-adapters/how-to/local-files/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../..">
+          <img src="../../imgs/icon-eoap.png" class="logo" alt="Logo"/>
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Tutorials</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../tutorials/">Tutorials</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../tutorials/first-session/">Build your first multi-backend session</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">How-to guides</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../">How-to guides</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../bearer-auth/">Add bearer authentication</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Work with local files</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#read-a-file">Read a file</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#inspect-metadata">Inspect metadata</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#write-text">Write text</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#delete-a-path">Delete a path</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../s3/">Read and write S3 objects</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../s3-compatible/">Use an S3-compatible service</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../oci/">Work with OCI artifacts</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Reference</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../reference/">Reference</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../reference/url-schemes/">URL schemes</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../reference/methods-and-responses/">Methods and responses</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../reference/bearer-auth-http-adapter/">BearerAuthHTTPAdapter</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../reference/file-adapter/">FileAdapter</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../reference/s3-adapter/">S3Adapter</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../reference/oci-adapter/">OCIAdapter</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../reference/limitations/">Current limitations</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Explanation</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../explanation/">Explanation</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../explanation/unified-session/">One session, several transports</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../explanation/authentication/">Authentication models</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../explanation/response-model/">Response and error mapping</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../contributing/">Contributing</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../changelog/">Changelog</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">session-adapters</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">How-to guides</li>
+      <li class="breadcrumb-item active">Work with local files</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/Terradue/session-adapters/edit/main/docs/how-to/local-files.md">Edit on Terradue/session-adapters</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="work-with-local-files">Work with local files<a class="headerlink" href="#work-with-local-files" title="Permanent link">&para;</a></h1>
+<p>Mount the adapter and use absolute file URLs:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">session_adapters.file_adapter</span><span class="w"> </span><span class="kn">import</span> <span class="n">FileAdapter</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">session</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">Session</span><span class="p">()</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">session</span><span class="o">.</span><span class="n">mount</span><span class="p">(</span><span class="s2">&quot;file://&quot;</span><span class="p">,</span> <span class="n">FileAdapter</span><span class="p">())</span>
+</code></pre></div>
+<h2 id="read-a-file">Read a file<a class="headerlink" href="#read-a-file" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;/tmp/report.json&quot;</span><span class="p">)</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">response</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">as_uri</span><span class="p">())</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">ok</span><span class="p">:</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">report</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>
+</code></pre></div>
+<p>Large responses are exposed through <code>response.raw</code>. Use streaming reads when
+you do not want Requests to materialize the entire file:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">response</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">as_uri</span><span class="p">(),</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">with</span> <span class="n">response</span><span class="p">:</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">iter_content</span><span class="p">(</span><span class="n">chunk_size</span><span class="o">=</span><span class="mi">64</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">):</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>        <span class="k">if</span> <span class="n">chunk</span><span class="p">:</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>            <span class="n">process</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="inspect-metadata">Inspect metadata<a class="headerlink" href="#inspect-metadata" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">response</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">as_uri</span><span class="p">())</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="p">)</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nb">print</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Last-Modified&quot;</span><span class="p">))</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Content-Type&quot;</span><span class="p">))</span>
+</code></pre></div>
+<p>MIME types are inferred from the file extension with Python's <code>mimetypes</code>
+module.</p>
+<h2 id="write-text">Write text<a class="headerlink" href="#write-text" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">target</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;/tmp/session-adapters/output.txt&quot;</span><span class="p">)</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">response</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">as_uri</span><span class="p">(),</span> <span class="n">data</span><span class="o">=</span><span class="s2">&quot;generated content&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p>Missing parent directories are created. The current implementation writes in
+text mode and does not set a success status; see
+<a href="../../reference/limitations/">Current limitations</a>.</p>
+<h2 id="delete-a-path">Delete a path<a class="headerlink" href="#delete-a-path" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">response</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">as_uri</span><span class="p">())</span>
+</code></pre></div>
+<p>Deleting a directory is recursive.</p>
+<div class="admonition danger">
+<p class="admonition-title">The URL grants filesystem authority</p>
+<p><code>FileAdapter</code> performs operations with the permissions of the Python
+process. Validate user-supplied paths before issuing <code>PUT</code> or <code>DELETE</code>
+requests. A <code>DELETE</code> request can remove a non-empty directory tree.</p>
+</div>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../bearer-auth/" class="btn btn-neutral float-left" title="Add bearer authentication"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../s3/" class="btn btn-neutral float-right" title="Read and write S3 objects">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+      <p><a href="https://www.apache.org/licenses/LICENSE-2.0"><img src="https://img.shields.io/badge/license-Apache%20License%202.0-blue"" alt="Apache License, Version 2.0" /></a></p>
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/Terradue/session-adapters" class="fa fa-code-fork" style="color: #fcfcfc"> Terradue/session-adapters</a>
+        </span>
+    
+    
+      <span><a href="../bearer-auth/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../s3/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
