@@ -28,7 +28,7 @@ classifiers = [
 dependencies = [
   "boto3==1.43.59",
   "loguru==0.7.3",
-  "oras==0.2.42",
+  "oras==0.2.43",
   "pydantic==2.13.4",
   "python-magic==0.4.27",
   "requests==2.34.2"
