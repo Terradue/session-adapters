@@ -26,7 +26,7 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-  "boto3==1.43.59",
+  "boto3==1.43.83",
   "loguru==0.7.3",
   "oras==0.2.42",
   "pydantic==2.13.4",
