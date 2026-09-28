@@ -23,8 +23,8 @@ import pytest
 from pytest import MonkeyPatch
 from requests import Request
 
-from session_adapters.conainers_auth import ContainersAuth
-from session_adapters.oci_adapter import OCIAdapter, add_auth
+from session_adapters.conainers_auth import Auth, ContainersAuth
+from session_adapters.oci_adapter import OCIAdapter
 
 
 class _FakeOrasClient:
@@ -513,9 +513,11 @@ def test_auth_key_normalization_preserves_port_and_namespace(
 
 
 @pytest.mark.parametrize("auths", [None, {}])
-def test_add_auth_initializes_config_and_resolves_credentials(auths: dict[str, Any] | None) -> None:
+def test_add_auth_initializes_config_and_resolves_credentials(
+    auths: dict[str, Auth] | None,
+) -> None:
     config = ContainersAuth(auths=auths)
-    add_auth("registry.io:5000", "usér", "päss:word", config)
+    config.add_auth("registry.io:5000", "usér", "päss:word")
     adapter = OCIAdapter(containers_auth=config)
     request = adapter.parse_request(Request("GET", "oci://registry.io:5000/team/repo").prepare())
     resolved = adapter._resolve_request_auth(request)
@@ -539,7 +541,7 @@ def test_add_auth_replaces_only_target_entry() -> None:
     entries = config.auths
     assert entries is not None
     other = entries["other.io"]
-    add_auth("registry.io", "new-user", "new-password", config)
+    config.add_auth("registry.io", "new-user", "new-password")
     assert config.auths is entries
     assert config.auths["other.io"] is other
     assert config.cred_helpers == {"other.io": "pass"}

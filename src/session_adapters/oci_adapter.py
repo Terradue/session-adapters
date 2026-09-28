@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from base64 import b64encode
 from http import HTTPStatus
 from pathlib import Path
 from typing import Any, final
@@ -31,27 +30,10 @@ from session_adapters.base import (
     AbstractAdapter,
     ExtendedResponse,
 )
-from session_adapters.conainers_auth import Auth, ContainersAuth
+from session_adapters.conainers_auth import ContainersAuth
 from session_adapters.http_conts import DEFAULT_ENCODING, ContentType, HTTPHeader
 
 OCI_SCHEME = "oci://"
-
-
-def add_auth(
-    hostname: str,
-    username: str,
-    password: str,
-    containers_auth: ContainersAuth,
-) -> None:
-    """Add or replace inline credentials in the supplied configuration.
-
-    Other auth entries and credential helpers are preserved. Call this
-    before constructing the adapter, which snapshots the configuration.
-    """
-    credentials = b64encode(f"{username}:{password}".encode()).decode("ascii")
-    if containers_auth.auths is None:
-        containers_auth.auths = {}
-    containers_auth.auths[hostname] = Auth(auth=credentials)
 
 
 class _OCIRequest(BaseModel):
