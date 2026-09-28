@@ -24,37 +24,37 @@ def _prepare(method: str, url: str = "http://example.test/resource") -> Prepared
 
 
 class _DummyAdapter(AbstractAdapter[PreparedRequest]):
-    def __init__(self, raise_in_parse=False, raise_in_get=False):
+    def __init__(self, raise_in_parse: bool = False, raise_in_get: bool = False) -> None:
         super().__init__()
         self.raise_in_parse = raise_in_parse
         self.raise_in_get = raise_in_get
-        self.called = []
+        self.called: list[str] = []
 
     def parse_request(self, request: PreparedRequest) -> PreparedRequest:
         if self.raise_in_parse:
             raise TypeError("bad request")
         return request
 
-    def do_get(self, request: PreparedRequest, response: ExtendedResponse):
+    def do_get(self, request: PreparedRequest, response: ExtendedResponse) -> None:
         self.called.append("GET")
         if self.raise_in_get:
             raise RuntimeError("boom")
         response.send_status(HTTPStatus.OK)
 
-    def do_head(self, request: PreparedRequest, response: ExtendedResponse):
+    def do_head(self, request: PreparedRequest, response: ExtendedResponse) -> None:
         self.called.append("HEAD")
         response.send_status(HTTPStatus.OK)
 
-    def do_put(self, request: PreparedRequest, response: ExtendedResponse):
+    def do_put(self, request: PreparedRequest, response: ExtendedResponse) -> None:
         self.called.append("PUT")
         response.send_status(HTTPStatus.CREATED)
 
-    def do_delete(self, request: PreparedRequest, response: ExtendedResponse):
+    def do_delete(self, request: PreparedRequest, response: ExtendedResponse) -> None:
         self.called.append("DELETE")
         response.send_status(HTTPStatus.NO_CONTENT)
 
 
-def test_send_dispatches_get():
+def test_send_dispatches_get() -> None:
     adapter = _DummyAdapter()
 
     response = adapter.send(_prepare("GET"))
@@ -63,7 +63,7 @@ def test_send_dispatches_get():
     assert adapter.called == ["GET"]
 
 
-def test_send_returns_method_not_allowed_for_supported_but_unhandled_method():
+def test_send_returns_method_not_allowed_for_supported_but_unhandled_method() -> None:
     adapter = _DummyAdapter()
 
     response = adapter.send(_prepare("POST"))
@@ -73,7 +73,7 @@ def test_send_returns_method_not_allowed_for_supported_but_unhandled_method():
     assert adapter.called == []
 
 
-def test_send_maps_invalid_method_to_method_not_allowed_error():
+def test_send_maps_invalid_method_to_method_not_allowed_error() -> None:
     adapter = _DummyAdapter()
 
     response = adapter.send(_prepare("BREW"))
@@ -83,7 +83,7 @@ def test_send_maps_invalid_method_to_method_not_allowed_error():
     assert b"valid HTTPMethod" in response.content
 
 
-def test_send_maps_parse_type_error_to_bad_request():
+def test_send_maps_parse_type_error_to_bad_request() -> None:
     adapter = _DummyAdapter(raise_in_parse=True)
 
     response = adapter.send(_prepare("GET"))
@@ -93,7 +93,7 @@ def test_send_maps_parse_type_error_to_bad_request():
     assert response.content == b"bad request"
 
 
-def test_send_maps_unexpected_error_to_internal_server_error():
+def test_send_maps_unexpected_error_to_internal_server_error() -> None:
     adapter = _DummyAdapter(raise_in_get=True)
 
     response = adapter.send(_prepare("GET"))

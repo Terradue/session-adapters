@@ -21,7 +21,5 @@ tasks:
 
   default:
     cmds:
-    - task: quality:test
-    - task: quality:check
-    - task: quality:lint
+    - task: quality:pre-commit:run
     
