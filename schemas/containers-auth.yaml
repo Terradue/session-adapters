@@ -1,0 +1,55 @@
+# Copyright 2026 Terradue
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+$schema: https://json-schema.org/draft/2020-12/schema
+title: Containers registry authentication file
+description: Unofficial structural JSON Schema derived from dockerConfigFile and dockerAuthConfig in podman-container-tools/container-libs. Describes canonical auth.json objects, not every input accepted by Go's encoding/json decoder.
+$comment: 'Source: https://github.com/podman-container-tools/container-libs/blob/main/image/pkg//config/config.go ; inspected 2026-09-28; Git blob SHA: 755a495541ffcd7ffd21065e813cbb2eae3105f2 (https://api.github.com/repos/podman-container-tools/container-libs/git/blobs/755a495541ffcd7ffd21065e813cbb2eae3105f2). This is not an upstream-published schema. All fields are optional for reading: lack of omitempty on auths controls Go serialization, not required input. Unknown fields are allowed, matching Go''s default behavior of ignoring them; acceptance does not imply support or preservation when rewriting. This authoring schema uses canonical case-sensitive property names and rejects null for declared fields, although Go decoding can tolerate null and case-insensitive names. It does not validate registry-reference syntax, perform credential lookup, run helpers, or establish that credentials authenticate successfully. Legacy .cfg root maps are outside scope.'
+$ref: '#/$defs/ContainersAuth'
+
+$defs:
+
+  ContainersAuth:
+    type: object
+    description: Modern auth-file envelope corresponding to the Go ContainersAuth struct.
+    properties:
+      auths:
+        type: object
+        description: Map from registry host[:port], namespace, or repository to an inline credential object. Repository matching is performed at runtime, most-specific first. Legacy URL-shaped keys may also be read by the implementation; no key regex is imposed here.
+        additionalProperties:
+          $ref: '#/$defs/Auth'
+      credHelpers:
+        type: object
+        description: Map from registry host[:port] to the suffix of a -credential- executable. Helpers are looked up by registry, not repository namespace. Existence and execution are runtime concerns.
+        additionalProperties:
+          type: string
+    additionalProperties: true
+    $comment: 'credsStore is deliberately not declared: it is not a member of this Go struct. It can pass as an unknown property, but is not thereby validated or implemented. No required fields or non-empty constraints are imposed.'
+
+  Auth:
+    type: object
+    description: Inline entry corresponding to the Go Auth struct. An empty object is allowed, including as a credential-helper marker.
+    properties:
+      auth:
+        type: string
+        description: Standard base64 representation of username:password. Base64 is encoding, not encryption. The decoded value must be checked at runtime; the password may contain colons.
+        contentEncoding: base64
+        writeOnly: true
+        $comment: contentEncoding is an annotation in Draft 2020-12, not a guarantee of base64 validation. No pattern or minLength is added because the Go field itself is an unconstrained string.
+      identitytoken:
+        type: string
+        description: Identity token field present in the Go struct. Structural acceptance alone does not guarantee that an identitytoken-only entry is usable by the runtime credential decoder.
+        writeOnly: true
+    additionalProperties: true
+    $comment: Both fields may coexist; neither is required. writeOnly is metadata and does not redact secrets.

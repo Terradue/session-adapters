@@ -12,11 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from base64 import b64encode
 from http import HTTPStatus
 from pathlib import Path
 from typing import Any, final
 from urllib.parse import parse_qs, urlparse
 
+from docker.auth import AuthConfig  # type: ignore[import-untyped]
+from docker.auth import load_config as load_auth_config
 from loguru import logger
 from oras.client import OrasClient  # type: ignore[import-untyped]
 from pydantic import BaseModel, ConfigDict, computed_field
@@ -28,9 +31,27 @@ from session_adapters.base import (
     AbstractAdapter,
     ExtendedResponse,
 )
+from session_adapters.conainers_auth import Auth, ContainersAuth
 from session_adapters.http_conts import DEFAULT_ENCODING, ContentType, HTTPHeader
 
 OCI_SCHEME = "oci://"
+
+
+def add_auth(
+    hostname: str,
+    username: str,
+    password: str,
+    containers_auth: ContainersAuth,
+) -> None:
+    """Add or replace inline credentials in the supplied configuration.
+
+    Other auth entries and credential helpers are preserved. Call this
+    before constructing the adapter, which snapshots the configuration.
+    """
+    credentials = b64encode(f"{username}:{password}".encode()).decode("ascii")
+    if containers_auth.auths is None:
+        containers_auth.auths = {}
+    containers_auth.auths[hostname] = Auth(auth=credentials)
 
 
 class _OCIRequest(BaseModel):
@@ -41,7 +62,7 @@ class _OCIRequest(BaseModel):
     reference: str | None = None
     query: dict[str, list[str]]
     # from original request
-    headers: CaseInsensitiveDict
+    headers: CaseInsensitiveDict[str | bytes]
     body: Any
 
     @computed_field  # type: ignore[prop-decorator]
@@ -58,48 +79,85 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
     """
     A requests Transport Adapter that handles oci:// URLs using an OrasClient.
 
-    Auth: pass in a pre-configured, authenticated OrasClient (recommended).
-    You can also pass username/password/token and, if your OrasClient exposes a
-    login() or similar, you may adapt the constructor to call it.
+    Credentials are selected from the container auth configuration for each request.
     """
 
     def __init__(
         self,
-        hostname: str | None = None,
-        username: str | None = None,
-        password: str | None = None,
+        containers_auth: ContainersAuth | None = None,
         outdir: str | None = None,
-    ):
+    ) -> None:
         super().__init__()
 
-        self.hostname = hostname
-        self.username = username
-        self.password = password
+        containers_auth = containers_auth or ContainersAuth(auths={})
+        self.auth_config: AuthConfig = load_auth_config(
+            config_dict={
+                "auths": {},
+                **containers_auth.model_dump(mode="json", by_alias=True, exclude_none=True),
+            }
+        )
         self.outdir = outdir
 
-    def _get_oras_with_optional_auth(self) -> OrasClient:
+    def _resolve_request_auth(self, request: _OCIRequest) -> dict[str, Any] | None:
+        # Docker's resolver strips paths from keys. Filter first so credentials
+        # for a sibling namespace can never become registry-wide credentials.
+        auths = {}
+        for key, value in self.auth_config.auths.items():
+            normalized = key
+            # Bare host:port keys must not be interpreted as URL schemes.
+            if "://" in key:
+                parsed = urlparse(key)
+                normalized = f"{parsed.netloc}{parsed.path}"
+            auths[normalized.rstrip("/")] = value
+        scope = f"{request.registry}/{request.repository}"
+        selected = {}
+        while scope:
+            if scope in auths:
+                selected = {request.registry: auths[scope]}
+                break
+            scope = scope.rpartition("/")[0]
+
+        contextual_config = AuthConfig(
+            {
+                "auths": selected,
+                "credHelpers": self.auth_config.cred_helpers,
+                "credsStore": self.auth_config.creds_store,
+            }
+        )
+        # AuthConfig delegates helper execution and missing-credential handling
+        # to docker.credentials.Store.
+        return contextual_config.resolve_authconfig(request.registry)  # type: ignore[no-any-return]
+
+    def _get_oras_with_optional_auth(self, request: _OCIRequest) -> OrasClient:
+        client = None
         try:
-            if self.hostname and self.username and self.password:
-                logger.debug(f"OCI {self.username}@{self.hostname} login...")
-
-                client: OrasClient = OrasClient(hostname=self.hostname)
-                res = client.login(username=self.username, password=self.password)
-
-                logger.debug(
-                    f"OCI login {self.username}@{self.hostname} response: {res}"
-                )
-
+            auth = self._resolve_request_auth(request) or {}
+            username = auth.get("username") or auth.get("Username")
+            password = auth.get("password") or auth.get("Password")
+            if username and password:
+                client = OrasClient(hostname=request.registry)
+                client.login(username=username, password=password, hostname=request.registry)
                 return client
-        except Exception as e:
-            # retry anonymous
-            logger.warning(f"OCI login/auth handshake failed -> retry anonymously: {e}")
-            pass
+        except Exception:
+            # Helper errors can contain secrets; do not include their text.
+            logger.warning("OCI login/auth handshake failed -> retry anonymously")
+            if client is not None:
+                self._logout(client)
 
         return OrasClient()
 
-    def _logout(self, client: OrasClient):
-        if self.hostname:
-            client.logout(self.hostname)
+    def _logout(self, client: OrasClient) -> None:
+        hosts = set(client.auth._auth_config.get("auths", {}))
+        if client.hostname:
+            hosts.add(client.hostname)
+        try:
+            for hostname in hosts:
+                try:
+                    client.logout(hostname)
+                except Exception:  # noqa: PERF203 - attempt every logout even after a failure
+                    logger.warning("OCI logout failed")
+        finally:
+            client.session.close()
 
     def parse_request(self, request: PreparedRequest) -> _OCIRequest:
         """
@@ -148,13 +206,13 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
             body=request.body or b"",
         )
 
-    def do_get(self, request: _OCIRequest, response: ExtendedResponse):
+    def do_get(self, request: _OCIRequest, response: ExtendedResponse) -> None:
         """
-        Pull the artifact. Adapt to your client’s API. The goal is to return raw bytes or a file-like object.
+        Pull the artifact. Adapt to your client's API. The goal is to return raw bytes or a file-like object.
         """
         logger.debug(f"Fetching data from: {request.ref}...")
 
-        client: OrasClient = self._get_oras_with_optional_auth()
+        client: OrasClient = self._get_oras_with_optional_auth(request)
 
         try:
             data = client.pull(target=request.ref, outdir=self.outdir)
@@ -169,12 +227,10 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
 
                 if pulled.is_file():
                     # The response owns this stream and closes it after consumption.
-                    response.raw = pulled.open(__DEFAULT_READ_MODE__)  # noqa: SIM115
+                    response.raw = pulled.open(__DEFAULT_READ_MODE__)
                     response.raw.release_conn = response.raw.close
 
-                    response.send_header(
-                        HTTPHeader.CONTENT_LENGTH, str(pulled.stat().st_size)
-                    )
+                    response.send_header(HTTPHeader.CONTENT_LENGTH, str(pulled.stat().st_size))
                 else:
                     # TODO file listing
                     logger.warning("TODO: file listing is not supported yet")
@@ -191,16 +247,14 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
         finally:
             self._logout(client)
 
-    def do_head(self, request: _OCIRequest, response: ExtendedResponse):
+    def do_head(self, request: _OCIRequest, response: ExtendedResponse) -> None:
         """
         Emulate HEAD via manifest lookup.
         """
-        client: OrasClient = self._get_oras_with_optional_auth()
+        client: OrasClient = self._get_oras_with_optional_auth(request)
 
         try:
-            manifest = getattr(client, "manifest", None) or getattr(
-                client, "get_manifest", None
-            )
+            manifest = getattr(client, "manifest", None) or getattr(client, "get_manifest", None)
 
             if manifest is None:
                 # Fallback: try pull-without-download if your client supports it
@@ -211,9 +265,7 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
                 meta = manifest(request.ref)
                 # You can extract size/digest/mediaType if available to populate headers:
                 if isinstance(meta, dict):
-                    media_type = meta.get("mediaType") or meta.get("config", {}).get(
-                        "mediaType"
-                    )
+                    media_type = meta.get("mediaType") or meta.get("config", {}).get("mediaType")
                     if media_type:
                         response.headers[HTTPHeader.CONTENT_TYPE.name] = media_type
 
@@ -227,25 +279,20 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
         finally:
             self._logout(client)
 
-    def do_put(self, request: _OCIRequest, response: ExtendedResponse):
+    def do_put(self, request: _OCIRequest, response: ExtendedResponse) -> None:
         body = request.body
         if isinstance(request.body, str):
             body = body.encode(DEFAULT_ENCODING)
 
         # Guess media type if provided by caller
-        media_type = (
-            request.headers.get(HTTPHeader.ACCEPT.value)
-            or ContentType.OCTET_STREAM.value
-        )
+        media_type = request.headers.get(HTTPHeader.ACCEPT.value) or ContentType.OCTET_STREAM.value
 
         # Some clients accept: client.push(ref, data=..., media_type=...)
         # Others want: client.push(ref, files={"artifact": (name, bytes, media_type)})
-        client: OrasClient = self._get_oras_with_optional_auth()
+        client: OrasClient = self._get_oras_with_optional_auth(request)
         try:
-            # Adjust this call to your client’s signature:
-            client.push(
-                request.ref, data=body, media_type=media_type
-            )  # <-- edit if needed
+            # Adjust this call to your client's signature:
+            client.push(request.ref, data=body, media_type=media_type)  # <-- edit if needed
             response.send_status(HTTPStatus.CREATED)
         except TypeError:
             # Fallback: try a more generic signature
@@ -260,11 +307,11 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
         finally:
             self._logout(client)
 
-    def do_delete(self, request: _OCIRequest, response: ExtendedResponse):
+    def do_delete(self, request: _OCIRequest, response: ExtendedResponse) -> None:
         """
         Delete by reference (if supported).
         """
-        client: OrasClient = self._get_oras_with_optional_auth()
+        client: OrasClient = self._get_oras_with_optional_auth(request)
         try:
             delete_fn = getattr(client, "delete", None)
             if delete_fn:
@@ -282,5 +329,5 @@ class OCIAdapter(AbstractAdapter[_OCIRequest]):
         finally:
             self._logout(client)
 
-    def close(self):
+    def close(self) -> None:
         pass

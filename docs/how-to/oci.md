@@ -13,23 +13,93 @@ session.mount("oci://", OCIAdapter(outdir="/tmp/oci-artifacts"))
 
 ## Authenticate to a registry
 
-All three authentication values must be supplied:
+Starting with **0.6.0**, `OCIAdapter` accepts a `ContainersAuth` model instead
+of the `hostname`, `username`, and `password` constructor arguments. Migrate
+existing calls using the `add_auth` helper:
 
 ```python
 import os
 
+from session_adapters.conainers_auth import ContainersAuth
+from session_adapters.oci_adapter import add_auth
+
+hostname = "registry.example.com"
+username = os.environ["OCI_USERNAME"]
+password = os.environ["OCI_PASSWORD"]
+containers_auth = ContainersAuth()
+add_auth(hostname, username, password, containers_auth)
 adapter = OCIAdapter(
-    hostname="registry.example.com",
-    username=os.environ["OCI_USERNAME"],
-    password=os.environ["OCI_PASSWORD"],
+    containers_auth=containers_auth,
     outdir="/tmp/oci-artifacts",
 )
 session.mount("oci://", adapter)
 ```
 
-The adapter creates an ORAS client per operation, logs in, performs the
-operation, and logs out. If the login handshake fails, it retries with an
-anonymous client.
+The import path is `session_adapters.conainers_auth` (the module's current spelling).
+`add_auth` updates the supplied model in place and returns `None`. It creates
+`auths` if needed and replaces any entry for the supplied key, preserving other
+entries and helpers. Call it before constructing the adapter, which snapshots
+the configuration. The helper Base64-encodes `username:password`; Base64 is
+encoding, not encryption.
+
+The adapter serializes the model for Docker's `load_auth_config` using
+`model_dump(mode="json", by_alias=True, exclude_none=True)`. The resulting
+structure is:
+
+```json
+{
+  "auths": {
+    "registry.example.com": {
+      "auth": "<base64-encoded username:password>"
+    }
+  }
+}
+```
+
+`by_alias=True` preserves names such as `credHelpers`. `exclude_none=True`
+omits unset fields, including `identitytoken`; Docker's parser would otherwise
+prioritize that field over `auth` even when its value is null.
+
+### Scope credentials to a namespace or repository
+
+Use a namespace or repository as the `auths` key to restrict credential matching:
+
+```python
+containers_auth = ContainersAuth()
+add_auth(
+    "registry.example.com/team/project", username, password, containers_auth
+)
+session.mount("oci://", OCIAdapter(containers_auth=containers_auth))
+```
+
+For `oci://registry.example.com/team/project:latest`, the adapter checks
+`registry.example.com/team/project`, then `registry.example.com/team`, then
+`registry.example.com`. The first matching entry wins. Sibling namespaces
+never inherit each other's credentials. One configuration can contain entries
+for multiple registries and namespaces.
+
+### Use a credential helper
+
+Configure a helper by registry hostname, including the port when applicable:
+
+```python
+containers_auth = ContainersAuth(
+    cred_helpers={"registry.example.com": "pass"},
+)
+session.mount("oci://", OCIAdapter(containers_auth=containers_auth))
+```
+
+This uses `docker-credential-pass` through `docker.credentials.Store`. A helper
+is queried for the registry, not the repository path. Helper credentials take
+precedence over inline credentials; if the helper reports no credentials,
+the adapter falls back to the matching inline entry.
+
+A client is created for each operation. Login is attempted only when the
+resolved credentials contain both a nonempty username and password. Missing
+credentials, credential resolution errors, or a failed login handshake lead
+to an anonymous client. An `identitytoken`-only entry does not trigger login.
+After the operation, the adapter attempts to log out all hosts known to the
+client and closes its HTTP session.
 
 ## Pull by tag or digest
 

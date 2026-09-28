@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from http import HTTPStatus
+from pathlib import Path
+from typing import cast
 
 from requests import Request
 
 from session_adapters.file_adapter import FileAdapter
 
 
-def test_parse_request_rejects_host_component():
+def test_parse_request_rejects_host_component() -> None:
     adapter = FileAdapter()
     request = Request("GET", "file://example.com/tmp/test.txt").prepare()
 
@@ -30,13 +32,13 @@ def test_parse_request_rejects_host_component():
         raise AssertionError("TypeError was expected for non-localhost file URL")
 
 
-def test_put_get_delete_roundtrip(tmp_path):
+def test_put_get_delete_roundtrip(tmp_path: Path) -> None:
     adapter = FileAdapter()
     target = tmp_path / "nested" / "sample.txt"
     url = target.as_uri()
 
     put_response = adapter.send(Request("PUT", url, data="hello world").prepare())
-    assert put_response.status_code is None
+    assert cast("int | None", put_response.status_code) is None
     assert target.read_text() == "hello world"
 
     get_response = adapter.send(Request("GET", url).prepare())
@@ -49,7 +51,7 @@ def test_put_get_delete_roundtrip(tmp_path):
     assert not target.exists()
 
 
-def test_head_missing_file_returns_not_found(tmp_path):
+def test_head_missing_file_returns_not_found(tmp_path: Path) -> None:
     adapter = FileAdapter()
     missing = (tmp_path / "does-not-exist.txt").as_uri()
 

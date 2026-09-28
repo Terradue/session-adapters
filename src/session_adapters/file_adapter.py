@@ -41,7 +41,7 @@ class _FileRequest(BaseModel):
 
 @final
 class FileAdapter(AbstractAdapter[_FileRequest]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     def parse_request(self, request: PreparedRequest) -> _FileRequest:
@@ -54,7 +54,7 @@ class FileAdapter(AbstractAdapter[_FileRequest]):
 
         return _FileRequest(path=Path(str(url_parts.path)), body=request.body or b"")
 
-    def do_head(self, request: _FileRequest, response: ExtendedResponse):
+    def do_head(self, request: _FileRequest, response: ExtendedResponse) -> None:
         try:
             if request.path.exists():
                 response.send_file_info(request.path)
@@ -74,14 +74,14 @@ class FileAdapter(AbstractAdapter[_FileRequest]):
                 case _:
                     response.send_error(HTTPStatus.BAD_REQUEST, ioe)
 
-    def do_get(self, request: _FileRequest, response: ExtendedResponse):
+    def do_get(self, request: _FileRequest, response: ExtendedResponse) -> None:
         try:
             if request.path.exists():
                 response.send_file_info(request.path)
 
                 if request.path.is_file():
                     # The response owns this stream and closes it after consumption.
-                    response.raw = request.path.open(__DEFAULT_READ_MODE__)  # noqa: SIM115
+                    response.raw = request.path.open(__DEFAULT_READ_MODE__)
                     response.raw.release_conn = response.raw.close
 
                     response.send_header(
@@ -107,7 +107,7 @@ class FileAdapter(AbstractAdapter[_FileRequest]):
                 case _:
                     response.send_error(HTTPStatus.BAD_REQUEST, ioe)
 
-    def do_delete(self, request: _FileRequest, response: ExtendedResponse):
+    def do_delete(self, request: _FileRequest, response: ExtendedResponse) -> None:
         self.do_head(request, response)
 
         try:
@@ -119,7 +119,7 @@ class FileAdapter(AbstractAdapter[_FileRequest]):
         except OSError:
             pass
 
-    def do_put(self, request: _FileRequest, response: ExtendedResponse):
+    def do_put(self, request: _FileRequest, response: ExtendedResponse) -> None:
         request.path.parent.mkdir(parents=True, exist_ok=True)
 
         try:
@@ -128,6 +128,6 @@ class FileAdapter(AbstractAdapter[_FileRequest]):
         except OSError as ioe:
             response.send_error(HTTPStatus.INTERNAL_SERVER_ERROR, ioe)
 
-    def close(self):
+    def close(self) -> None:
         # No persistent sockets to close beyond what botocore manages, but keep hook for API parity.
         pass

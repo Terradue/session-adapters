@@ -15,13 +15,19 @@
 version: '3'
 
 includes:
+  json: https://raw.githubusercontent.com/Terradue/taskfile-utils/refs/heads/main/json.yaml
   quality: https://raw.githubusercontent.com/Terradue/taskfile-utils/refs/heads/main/quality.yaml
 
 tasks:
 
+  create_models:
+    cmds:
+      - task: json:create_models
+        vars:
+          SCHEMA: 'schemas/containers-auth.yaml'
+          OUTPUT: 'src/session_adapters/conainers_auth.py'
+
   default:
     cmds:
-    - task: quality:test
-    - task: quality:check
-    - task: quality:lint
+    - task: quality:pre-commit:run
     

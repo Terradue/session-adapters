@@ -12,20 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Any
+
 from requests import PreparedRequest, Response
 from requests.adapters import HTTPAdapter
 
 
 class BearerAuthHTTPAdapter(HTTPAdapter):
-    def __init__(self, token: str, *args, **kwargs) -> None:
+    def __init__(self, token: str, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.token = token
 
     def send(
         self,
         request: PreparedRequest,
-        *args,
-        **kwargs,
+        *args: Any,
+        **kwargs: Any,
     ) -> Response:
         request.headers["Authorization"] = f"Bearer {self.token}"
         return super().send(request, *args, **kwargs)

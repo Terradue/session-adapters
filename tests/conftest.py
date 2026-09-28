@@ -23,11 +23,11 @@ def _install_magic_stub() -> None:
     magic_mod: Any = types.ModuleType("magic")
 
     class _Magic:
-        def __init__(self, mime=True, uncompress=True):
+        def __init__(self, mime: bool = True, uncompress: bool = True) -> None:
             self.mime = mime
             self.uncompress = uncompress
 
-        def from_file(self, path):
+        def from_file(self, path: str) -> str:
             return "application/octet-stream"
 
     magic_mod.Magic = _Magic
@@ -42,19 +42,19 @@ def _install_oras_stub() -> None:
     client_mod: Any = types.ModuleType("oras.client")
 
     class _OrasClient:
-        def login(self, hostname, username, password):
+        def login(self, hostname: str, username: str, password: str) -> dict[str, bool]:
             return {"ok": True}
 
-        def pull(self, target, outdir=None):
+        def pull(self, target: str, outdir: str | None = None) -> list[str]:
             return []
 
-        def push(self, ref, data=None, media_type=None):
+        def push(self, ref: str, data: Any = None, media_type: str | None = None) -> None:
             return None
 
-        def delete(self, ref):
+        def delete(self, ref: str) -> None:
             return None
 
-        def logout(self):
+        def logout(self) -> None:
             return None
 
     client_mod.OrasClient = _OrasClient

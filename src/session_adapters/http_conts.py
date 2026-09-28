@@ -23,7 +23,7 @@ class HTTPMethod(Enum):
     """
 
     @staticmethod
-    def _generate_next_value_(name, start, count, last_values):
+    def _generate_next_value_(name: str, start: int, count: int, last_values: list[object]) -> str:
         return name  # ensures auto() = member name as string
 
     GET = auto()
@@ -43,7 +43,7 @@ class HTTPMethod(Enum):
 class HTTPHeader(str, Enum):
     """
     A comprehensive Enum of HTTP header names, modeled after common fields from
-    IANA’s HTTP Field Name Registry and de-facto headers used on the web.
+    IANA's HTTP Field Name Registry and de-facto headers used on the web.
 
     Usage:
         from http_headers import HttpHeader

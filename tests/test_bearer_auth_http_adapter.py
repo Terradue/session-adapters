@@ -19,7 +19,7 @@ from requests.adapters import HTTPAdapter
 from session_adapters.bearer_auth_http_adapter import BearerAuthHTTPAdapter
 
 
-def test_send_sets_bearer_authorization_header_and_delegates():
+def test_send_sets_bearer_authorization_header_and_delegates() -> None:
     adapter = BearerAuthHTTPAdapter("test-token")
     request = Request(
         "GET",

@@ -46,30 +46,30 @@ mimetypes.add_type(ContentType.XML.value, ".xml")
 
 
 class ExtendedResponse(Response):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
     @final
-    def send_status(self, http_status: HTTPStatus):
+    def send_status(self, http_status: HTTPStatus) -> None:
         self.status_code = http_status.value
         self.reason = http_status.phrase
 
     @final
-    def send_header(self, name: str | HTTPHeader, value: Any):
+    def send_header(self, name: str | HTTPHeader, value: Any) -> None:
         self.headers[str(name)] = str(value)
 
     @final
-    def send_date_header(self, name: str | HTTPHeader, value: datetime):
+    def send_date_header(self, name: str | HTTPHeader, value: datetime) -> None:
         self.send_header(name=name, value=value.strftime(__DATE_HEADER_FORMAT__))
 
     @final
-    def send_headers(self, headers_dict: dict[HTTPHeader, Any]):
+    def send_headers(self, headers_dict: dict[HTTPHeader, Any]) -> None:
         if headers_dict:
             for key, value in headers_dict.items():
                 self.send_header(name=key, value=value)
 
     @final
-    def send_file_info(self, path: Path):
+    def send_file_info(self, path: Path) -> None:
         stat_info = path.stat()
         mod_time_timestamp = stat_info.st_mtime
         mod_time = datetime.fromtimestamp(mod_time_timestamp)
@@ -85,7 +85,7 @@ class ExtendedResponse(Response):
                 break
 
     @final
-    def send_error(self, http_status: HTTPStatus, error: Any):
+    def send_error(self, http_status: HTTPStatus, error: Any) -> None:
         self.send_status(http_status)
         self._content = str(error).encode(DEFAULT_ENCODING)
         self.send_headers(
@@ -97,7 +97,7 @@ class ExtendedResponse(Response):
 
 
 class AbstractAdapter(BaseAdapter, Generic[AdapterRequest]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         self.allowed_methods = ", ".join(
@@ -118,20 +118,18 @@ class AbstractAdapter(BaseAdapter, Generic[AdapterRequest]):
     def send(
         self,
         request: PreparedRequest,
-        stream=False,
-        timeout=None,
-        verify=True,
-        cert=None,
-        proxies=None,
+        stream: bool = False,
+        timeout: float | tuple[float | None, float | None] | None = None,
+        verify: bool | str = True,
+        cert: str | tuple[str, str] | None = None,
+        proxies: dict[str, str] | None = None,
     ) -> Response:
         """
         Map the PreparedRequest (s3://bucket/key) to a boto3 call and wrap the
         result into a requests.Response.
         """
         response = ExtendedResponse()
-        response.url = (
-            request.url if request.url else ""
-        )  # should not happen, but IDE complains
+        response.url = request.url if request.url else ""  # should not happen, but IDE complains
         response.request = request
         response.send_date_header(HTTPHeader.DATE, datetime.now())
 
@@ -143,22 +141,7 @@ class AbstractAdapter(BaseAdapter, Generic[AdapterRequest]):
                 HTTPMethod(request.method.upper()) if request.method else HTTPMethod.GET
             )  # should not happen
 
-            match method:
-                case HTTPMethod.GET:
-                    self.do_get(request=parsed_request, response=response)
-
-                case HTTPMethod.HEAD:
-                    self.do_head(request=parsed_request, response=response)
-
-                case HTTPMethod.PUT:
-                    self.do_put(request=parsed_request, response=response)
-
-                case HTTPMethod.DELETE:
-                    self.do_delete(request=parsed_request, response=response)
-
-                case _:
-                    response.send_status(HTTPStatus.METHOD_NOT_ALLOWED)
-                    response.send_header(HTTPHeader.ALLOW, self.allowed_methods)
+            self._dispatch(method, parsed_request, response)
         except ValueError as ve:
             response.send_error(HTTPStatus.METHOD_NOT_ALLOWED, ve)
         except TypeError as te:
@@ -168,18 +151,34 @@ class AbstractAdapter(BaseAdapter, Generic[AdapterRequest]):
 
         return response
 
+    def _dispatch(
+        self, method: HTTPMethod, request: AdapterRequest, response: ExtendedResponse
+    ) -> None:
+        match method:
+            case HTTPMethod.GET:
+                self.do_get(request=request, response=response)
+            case HTTPMethod.HEAD:
+                self.do_head(request=request, response=response)
+            case HTTPMethod.PUT:
+                self.do_put(request=request, response=response)
+            case HTTPMethod.DELETE:
+                self.do_delete(request=request, response=response)
+            case _:
+                response.send_status(HTTPStatus.METHOD_NOT_ALLOWED)
+                response.send_header(HTTPHeader.ALLOW, self.allowed_methods)
+
     @abstractmethod
     def parse_request(self, request: PreparedRequest) -> AdapterRequest:
         pass
 
-    def do_head(self, request: AdapterRequest, response: ExtendedResponse):
+    def do_head(self, request: AdapterRequest, response: ExtendedResponse) -> None:
         response.send_status(HTTPStatus.NOT_IMPLEMENTED)
 
-    def do_get(self, request: AdapterRequest, response: ExtendedResponse):
+    def do_get(self, request: AdapterRequest, response: ExtendedResponse) -> None:
         response.send_status(HTTPStatus.NOT_IMPLEMENTED)
 
-    def do_put(self, request: AdapterRequest, response: ExtendedResponse):
+    def do_put(self, request: AdapterRequest, response: ExtendedResponse) -> None:
         response.send_status(HTTPStatus.NOT_IMPLEMENTED)
 
-    def do_delete(self, request: AdapterRequest, response: ExtendedResponse):
+    def do_delete(self, request: AdapterRequest, response: ExtendedResponse) -> None:
         response.send_status(HTTPStatus.NOT_IMPLEMENTED)

@@ -15,7 +15,7 @@
 import io
 from contextlib import suppress
 from http import HTTPStatus
-from typing import Any, final
+from typing import Any, Protocol, cast, final
 from urllib.parse import parse_qs, urlparse
 
 import boto3  # type: ignore[import-untyped]
@@ -31,11 +31,9 @@ S3_SCHEME = "s3://"
 DEFAULT_SERVICE_NAME = "s3"
 
 
-def _to_http_response(boto3_reponse: Any, target_response: ExtendedResponse):
+def _to_http_response(boto3_reponse: Any, target_response: ExtendedResponse) -> None:
     target_response.send_status(HTTPStatus(boto3_reponse.get("HTTPStatusCode")))
-    target_response.send_headers(
-        boto3_reponse.get("ResponseMetadata", {}).get("HTTPHeaders", {})
-    )
+    target_response.send_headers(boto3_reponse.get("ResponseMetadata", {}).get("HTTPHeaders", {}))
 
 
 class _S3Request(BaseModel):
@@ -45,8 +43,14 @@ class _S3Request(BaseModel):
     key: str
     query: dict[str, list[str]]
     # from original request
-    headers: CaseInsensitiveDict
+    headers: CaseInsensitiveDict[str | bytes]
     body: Any
+
+
+class _ReadableBody(Protocol):
+    def read(self, size: int = -1) -> bytes: ...
+
+    def close(self) -> None: ...
 
 
 class _StreamingBodyAdapter(io.RawIOBase):
@@ -55,19 +59,19 @@ class _StreamingBodyAdapter(io.RawIOBase):
     and allow requests' iter_content to work efficiently without buffering all content.
     """
 
-    def __init__(self, streaming_body):
+    def __init__(self, streaming_body: _ReadableBody) -> None:
         self._body = streaming_body
         self._closed = False
 
-    def readable(self):
+    def readable(self) -> bool:
         return True
 
-    def read(self, size=-1):
+    def read(self, size: int = -1) -> bytes:
         if self._closed:
             return b""
         return self._body.read() if size == -1 else self._body.read(size)
 
-    def close(self):
+    def close(self) -> None:
         self._closed = True
         with suppress(Exception):
             self._body.close()
@@ -89,7 +93,7 @@ class S3Adapter(AbstractAdapter[_S3Request]):
         aws_session_token: str | None = None,
         endpoint_url: str | None = None,
         config: object | None = None,
-    ):
+    ) -> None:
         super().__init__()
         self.s3 = boto3.client(
             DEFAULT_SERVICE_NAME,
@@ -108,9 +112,7 @@ class S3Adapter(AbstractAdapter[_S3Request]):
         if not bucket:
             raise TypeError("Missing bucket in s3:// URL")
 
-        key = (
-            str(parsed.path).lstrip("/") if parsed.path else ""
-        )  # may be empty for "list"
+        key = str(parsed.path).lstrip("/") if parsed.path else ""  # may be empty for "list"
 
         query = parse_qs(str(parsed.query)) if parsed.query else {}
 
@@ -122,19 +124,17 @@ class S3Adapter(AbstractAdapter[_S3Request]):
             body=request.body or b"",
         )
 
-    def do_head(self, request: _S3Request, response: ExtendedResponse):
+    def do_head(self, request: _S3Request, response: ExtendedResponse) -> None:
         boto3_reponse = self.s3.head_object(Bucket=request.bucket, Key=request.key)
         _to_http_response(boto3_reponse, response)
         response._content = b""
 
-    def do_get(self, request: _S3Request, response: ExtendedResponse):
+    def do_get(self, request: _S3Request, response: ExtendedResponse) -> None:
         boto3_reponse = None
 
         if request.key == "" or request.key.endswith("/"):
             # Directory-style listing
-            boto3_reponse = self._list_objects(
-                request.bucket, request.key, request.query
-            )
+            boto3_reponse = self._list_objects(request.bucket, request.key, request.query)
 
             # Return a JSON-ish bytes payload listing keys and common prefixes.
             import json
@@ -146,9 +146,7 @@ class S3Adapter(AbstractAdapter[_S3Request]):
                     {"Key": o["Key"], "Size": o["Size"], "ETag": o.get("ETag")}
                     for o in boto3_reponse.get("Contents", [])
                 ],
-                "CommonPrefixes": [
-                    p["Prefix"] for p in boto3_reponse.get("CommonPrefixes", [])
-                ],
+                "CommonPrefixes": [p["Prefix"] for p in boto3_reponse.get("CommonPrefixes", [])],
             }
             response._content = json.dumps(payload).encode(DEFAULT_ENCODING)
             response.send_headers(
@@ -164,13 +162,13 @@ class S3Adapter(AbstractAdapter[_S3Request]):
                 **self._get_object_opts(request.query),
             )
 
-            streaming_body = boto3_reponse["Body"] or b""
+            streaming_body = boto3_reponse["Body"] or io.BytesIO()
             # Prepare a file-like for Response.raw
             response.raw = _StreamingBodyAdapter(streaming_body)
 
         _to_http_response(boto3_reponse, response)
 
-    def do_put(self, request: _S3Request, response: ExtendedResponse):
+    def do_put(self, request: _S3Request, response: ExtendedResponse) -> None:
         body = request.body
 
         if isinstance(body, str):
@@ -184,17 +182,17 @@ class S3Adapter(AbstractAdapter[_S3Request]):
         )
         _to_http_response(boto3_reponse, response)
 
-    def do_delete(self, request: _S3Request, response: ExtendedResponse):
+    def do_delete(self, request: _S3Request, response: ExtendedResponse) -> None:
         boto3_reponse = self.s3.delete_object(Bucket=request.bucket, Key=request.key)
         _to_http_response(boto3_reponse, response)
 
-    def close(self):
+    def close(self) -> None:
         # No persistent sockets to close beyond what botocore manages, but keep hook for API parity.
         pass
 
     # ----- helpers -----
 
-    def _get_object_opts(self, query):
+    def _get_object_opts(self, query: dict[str, list[str]]) -> dict[str, str]:
         opts = {}
         # Support simple Range requests: s3://bucket/key?range=bytes%3D0-99
         if "range" in query:
@@ -204,8 +202,10 @@ class S3Adapter(AbstractAdapter[_S3Request]):
             opts["VersionId"] = query["versionId"][0]
         return opts
 
-    def _put_object_opts(self, headers, query):
-        opts = {}
+    def _put_object_opts(
+        self, headers: CaseInsensitiveDict[str | bytes], query: dict[str, list[str]]
+    ) -> dict[str, str | bytes]:
+        opts: dict[str, str | bytes] = {}
         # ContentType, CacheControl, etc. can be passed via headers
         # Map a few common ones. You can extend at will.
         for hsrc, hdst in [
@@ -228,10 +228,12 @@ class S3Adapter(AbstractAdapter[_S3Request]):
                     opts["SSEKMSKeyId"] = query["kmsKeyId"][0]
         return opts
 
-    def _list_objects(self, bucket, prefix, query):
-        kwargs = {"Bucket": bucket, "Prefix": prefix}
+    def _list_objects(
+        self, bucket: str, prefix: str, query: dict[str, list[str]]
+    ) -> dict[str, Any]:
+        kwargs: dict[str, str | int] = {"Bucket": bucket, "Prefix": prefix}
         if "delimiter" in query:
             kwargs["Delimiter"] = query["delimiter"][0]
         if "maxKeys" in query:
             kwargs["MaxKeys"] = int(query["maxKeys"][0])
-        return self.s3.list_objects_v2(**kwargs)
+        return cast("dict[str, Any]", self.s3.list_objects_v2(**kwargs))
