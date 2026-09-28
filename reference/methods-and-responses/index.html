@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="author" content="Fabrice Brito, Simone Tripodi" /><link rel="canonical" href="https://terradue.github.io/session-adapters/reference/methods-and-responses/" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>Methods and responses - session-adapters</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "Methods and responses";
+        var mkdocs_page_input_path = "reference/methods-and-responses.md";
+        var mkdocs_page_url = "/session-adapters/reference/methods-and-responses/";
+      </script>
+    
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+      <script>hljs.highlightAll();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../..">
+          <img src="../../imgs/icon-eoap.png" class="logo" alt="Logo"/>
+        </a><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Tutorials</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../tutorials/">Tutorials</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../tutorials/first-session/">Build your first multi-backend session</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">How-to guides</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../how-to/">How-to guides</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../how-to/bearer-auth/">Add bearer authentication</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../how-to/local-files/">Work with local files</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../how-to/s3/">Read and write S3 objects</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../how-to/s3-compatible/">Use an S3-compatible service</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../how-to/oci/">Work with OCI artifacts</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Reference</span></p>
+              <ul class="current">
+                  <li class="toctree-l1"><a class="reference internal" href="../">Reference</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../url-schemes/">URL schemes</a>
+                  </li>
+                  <li class="toctree-l1 current"><a class="reference internal current" href="#">Methods and responses</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#method-matrix">Method matrix</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#common-response-behavior">Common response behavior</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#common-exception-mapping">Common exception mapping</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../bearer-auth-http-adapter/">BearerAuthHTTPAdapter</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../file-adapter/">FileAdapter</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../s3-adapter/">S3Adapter</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../oci-adapter/">OCIAdapter</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../limitations/">Current limitations</a>
+                  </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Explanation</span></p>
+              <ul>
+                  <li class="toctree-l1"><a class="reference internal" href="../../explanation/">Explanation</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../explanation/unified-session/">One session, several transports</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../explanation/authentication/">Authentication models</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../../explanation/response-model/">Response and error mapping</a>
+                  </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../contributing/">Contributing</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../changelog/">Changelog</a>
+                </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">session-adapters</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" aria-label="Docs"></a></li>
+          <li class="breadcrumb-item">Reference</li>
+      <li class="breadcrumb-item active">Methods and responses</li>
+    <li class="wy-breadcrumbs-aside">
+          <a href="https://github.com/Terradue/session-adapters/edit/main/docs/reference/methods-and-responses.md">Edit on Terradue/session-adapters</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="methods-and-responses">Methods and responses<a class="headerlink" href="#methods-and-responses" title="Permanent link">&para;</a></h1>
+<h2 id="method-matrix">Method matrix<a class="headerlink" href="#method-matrix" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Adapter</th>
+<th><code>GET</code></th>
+<th><code>HEAD</code></th>
+<th><code>PUT</code></th>
+<th><code>DELETE</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bearer HTTP</td>
+<td>Delegated to Requests</td>
+<td>Delegated</td>
+<td>Delegated</td>
+<td>Delegated</td>
+</tr>
+<tr>
+<td>File</td>
+<td>Read file</td>
+<td>File metadata</td>
+<td>Write text</td>
+<td>Remove path</td>
+</tr>
+<tr>
+<td>S3</td>
+<td>Get object or list prefix</td>
+<td>Head object</td>
+<td>Put object</td>
+<td>Delete object</td>
+</tr>
+<tr>
+<td>OCI</td>
+<td>Pull first result</td>
+<td>Look up manifest</td>
+<td>Push bytes</td>
+<td>Delete reference</td>
+</tr>
+</tbody>
+</table>
+<p>The non-HTTP adapters dispatch <code>GET</code>, <code>HEAD</code>, <code>PUT</code>, and <code>DELETE</code>. Another
+valid HTTP method returns <code>405 Method Not Allowed</code> with:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="err">Allow: GET, HEAD, PUT, DELETE</span>
+</code></pre></div>
+<h2 id="common-response-behavior">Common response behavior<a class="headerlink" href="#common-response-behavior" title="Permanent link">&para;</a></h2>
+<p>The file, S3, and OCI adapters return a <code>requests.Response</code> subclass and set
+its <code>url</code> and <code>request</code> attributes. They add a <code>Date</code> header before dispatch.</p>
+<p>File and OCI downloads use <code>response.raw</code> for streaming. S3 object downloads
+wrap boto3's streaming body. Prefix listings instead place a JSON document in
+<code>response.content</code>.</p>
+<h2 id="common-exception-mapping">Common exception mapping<a class="headerlink" href="#common-exception-mapping" title="Permanent link">&para;</a></h2>
+<p>Exceptions escaping an adapter operation are mapped by the shared dispatcher:</p>
+<table>
+<thead>
+<tr>
+<th>Exception</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TypeError</code></td>
+<td><code>400 Bad Request</code></td>
+</tr>
+<tr>
+<td><code>ValueError</code></td>
+<td><code>405 Method Not Allowed</code></td>
+</tr>
+<tr>
+<td>Other <code>Exception</code></td>
+<td><code>500 Internal Server Error</code></td>
+</tr>
+</tbody>
+</table>
+<p>The error message is returned as UTF-8 plain text with <code>Content-Type</code> and
+<code>Content-Length</code> headers. Individual adapters can intercept an exception and
+return a more specific result; for example, OCI maps an authorization-related
+<code>ValueError</code> during pull to <code>401 Unauthorized</code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>These mappings describe current implementation behavior. A <code>ValueError</code>
+can originate in backend processing as well as method parsing, so <code>405</code>
+does not always mean that the caller selected an unsupported method.</p>
+</div>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../url-schemes/" class="btn btn-neutral float-left" title="URL schemes"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../bearer-auth-http-adapter/" class="btn btn-neutral float-right" title="BearerAuthHTTPAdapter">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+      <p><a href="https://www.apache.org/licenses/LICENSE-2.0"><img src="https://img.shields.io/badge/license-Apache%20License%202.0-blue"" alt="Apache License, Version 2.0" /></a></p>
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/Terradue/session-adapters" class="fa fa-code-fork" style="color: #fcfcfc"> Terradue/session-adapters</a>
+        </span>
+    
+    
+      <span><a href="../url-schemes/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../bearer-auth-http-adapter/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script src="../../js/jquery-3.6.0.min.js"></script>
+    <script>var base_url = "../..";</script>
+    <script src="../../js/theme_extra.js"></script>
+    <script src="../../js/theme.js"></script>
+      <script src="../../search/main.js"></script>
+    <script>
+        jQuery(function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        });
+    </script>
+
+</body>
+</html>
