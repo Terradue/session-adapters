@@ -19,6 +19,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [0.7.0] - 2026-09-29
+
+### Added
+
+- `ContainersAuth.get_instance(authfile)` to load and validate a registry
+  authentication JSON file from a `Path`.
+
+### Changed
+
+- **Breaking:** Move `add_auth` from `session_adapters.oci_adapter` to
+  `ContainersAuth.add_auth(hostname, username, password)`. Replace
+  `add_auth(hostname, username, password, config)` with
+  `config.add_auth(hostname, username, password)`.
+
+### Fixed
+
+- Update authentication tests and documentation for the relocated credential
+  method, and correct authentication module formatting and import ordering.
+
 ## [0.6.0] - 2026-09-28
 
 ### Added
@@ -95,7 +114,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   configurable registry hostnames.
 - Support Python 3.10 through 3.14, including CPython and PyPy.
 
-[unreleased]: https://github.com/Terradue/session-adapters/compare/v0.6.0...HEAD
+[unreleased]: https://github.com/Terradue/session-adapters/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/Terradue/session-adapters/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/Terradue/session-adapters/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/Terradue/session-adapters/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/Terradue/session-adapters/compare/v0.3.0...v0.4.0

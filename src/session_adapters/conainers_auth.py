@@ -18,9 +18,13 @@
 
 from __future__ import annotations
 
-from typing import Annotated
+from base64 import b64encode
+from typing import TYPE_CHECKING, Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, RootModel
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class Auth(BaseModel):
@@ -53,6 +57,35 @@ class ContainersAuth(BaseModel):
     """
     Map from registry host[:port] to the suffix of a -credential- executable. Helpers are looked up by registry, not repository namespace. Existence and execution are runtime concerns.
     """
+
+    def add_auth(
+        self,
+        hostname: str,
+        username: str,
+        password: str,
+    ) -> None:
+        """Add or replace inline credentials in this configuration.
+
+        Other auth entries and credential helpers are preserved. Call this
+        before constructing the adapter, which snapshots the configuration.
+        """
+        credentials = b64encode(f"{username}:{password}".encode()).decode("ascii")
+        if self.auths is None:
+            self.auths = {}
+        self.auths[hostname] = Auth(auth=credentials)
+
+    @staticmethod
+    def get_instance(authfile: Path) -> ContainersAuth:
+        """Load and validate a registry authentication JSON file.
+
+        Args:
+            authfile: Path to the authentication file.
+
+        Raises:
+            OSError: If the file cannot be read.
+            pydantic.ValidationError: If the JSON or configuration is invalid.
+        """
+        return ContainersAuth.model_validate_json(authfile.read_bytes())
 
 
 class ContainersRegistryAuthenticationFile(RootModel[ContainersAuth]):
