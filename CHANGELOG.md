@@ -21,9 +21,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.6.0] - 2026-09-28
 
+### Added
+
+- `add_auth(hostname, username, password, containers_auth)` in
+  `session_adapters.oci_adapter` to add or replace inline credentials in an existing configuration.
+
 ### Changed
 
-- Improved type annotations and internal code quality by addressing mypy, Ruff, and Bandit findings, without changing public APIs or runtime behavior.
+- **Breaking:** `OCIAdapter` now accepts `containers_auth: ContainersAuth | None`
+  instead of the `hostname`, `username`, and `password` constructor arguments.
+  The registry is derived from each request. Migrate username/password pairs
+  to Base64-encoded `Auth(auth=...)` entries inside `ContainersAuth(auths=...)`;
+  see the [OCI migration guide](docs/how-to/oci.md#authenticate-to-a-registry).
+- Resolve OCI inline credentials hierarchically by repository, namespace, and
+  registry, without leaking credentials between sibling namespaces. Registry
+  credential helpers use `docker.credentials.Store`. Anonymous fallback remains
+  available when credentials are missing or authentication fails.
+- Improved type annotations and internal code quality by addressing mypy,
+  Ruff, and Bandit findings.
+
+### Fixed
+
+- OCI cleanup attempts logout for all hosts known to each client and closes its
+  HTTP session, including clients discarded after a failed login.
 
 ## [0.5.0] - 2026-07-30
 

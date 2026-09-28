@@ -12,26 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from base64 import b64encode
 from http import HTTPStatus
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
+from unittest.mock import Mock
 
+import pytest
 from pytest import MonkeyPatch
 from requests import Request
 
-from session_adapters.oci_adapter import OCIAdapter
+from session_adapters.conainers_auth import ContainersAuth
+from session_adapters.oci_adapter import OCIAdapter, add_auth
 
 
 class _FakeOrasClient:
-    def __init__(self) -> None:
+    def __init__(self, hostname: str | None = None) -> None:
+        self.hostname = hostname
+        self.auth = SimpleNamespace(_auth_config={"auths": {}})
+        self.session = Mock()
+        self.login = Mock()
+        self.logout = Mock(side_effect=lambda host: self.auth._auth_config["auths"].pop(host, None))
         self.last_pull: dict[str, str | None] | None = None
         self.last_push: dict[str, Any] | None = None
         self.last_delete: str | None = None
         self.pull_return: list[str] = []
         self.pull_raise: Exception | None = None
-
-    def login(self, hostname: str, username: str, password: str) -> dict[str, bool]:
-        return {"ok": True}
 
     def pull(self, target: str, outdir: str | None = None) -> list[str]:
         self.last_pull = {"target": target, "outdir": outdir}
@@ -343,3 +350,199 @@ def test_delete_returns_bad_gateway_when_client_delete_fails(monkeypatch: Monkey
 
     assert response.status_code == HTTPStatus.BAD_GATEWAY
     assert b"cannot delete" in response.content
+
+
+@pytest.mark.parametrize(
+    ("repository", "expected"),
+    [
+        ("team/sub/repo", "repo"),
+        ("team/sub/other", "sub"),
+        ("team/other", "team"),
+        ("team-other/repo", "host"),
+    ],
+)
+def test_auth_uses_most_specific_scope(
+    monkeypatch: MonkeyPatch, repository: str, expected: str
+) -> None:
+    auths = {
+        f"registry.io{scope}": {"auth": b64encode(f"{user}:secret:colon".encode()).decode()}
+        for scope, user in [
+            ("", "host"),
+            ("/team", "team"),
+            ("/team/sub", "sub"),
+            ("/team/sub/repo", "repo"),
+        ]
+    }
+    adapter = OCIAdapter(ContainersAuth.model_validate({"auths": auths}))
+    monkeypatch.setattr("session_adapters.oci_adapter.OrasClient", _FakeOrasClient)
+    request = adapter.parse_request(Request("GET", f"oci://registry.io/{repository}:tag").prepare())
+    client = adapter._get_oras_with_optional_auth(request)
+    client.login.assert_called_once_with(
+        username=expected, password="secret:colon", hostname="registry.io"
+    )
+
+
+@pytest.mark.parametrize("entry", [{}, {"identitytoken": "token"}, {"auth": "dXNlcjo="}])
+def test_incomplete_auth_is_anonymous(monkeypatch: MonkeyPatch, entry: dict[str, str]) -> None:
+    adapter = OCIAdapter(ContainersAuth.model_validate({"auths": {"registry.io": entry}}))
+    monkeypatch.setattr("session_adapters.oci_adapter.OrasClient", _FakeOrasClient)
+    request = adapter.parse_request(Request("GET", "oci://registry.io/team/repo").prepare())
+    client = adapter._get_oras_with_optional_auth(request)
+    assert client.hostname is None
+    client.login.assert_not_called()
+
+
+def test_sibling_namespace_credentials_are_not_used(monkeypatch: MonkeyPatch) -> None:
+    adapter = OCIAdapter(
+        ContainersAuth.model_validate(
+            {"auths": {"https://registry.io/private": {"auth": "dXNlcjpwYXNz"}}}
+        )
+    )
+    monkeypatch.setattr("session_adapters.oci_adapter.OrasClient", _FakeOrasClient)
+    request = adapter.parse_request(Request("GET", "oci://registry.io/public/repo").prepare())
+    client = adapter._get_oras_with_optional_auth(request)
+    client.login.assert_not_called()
+    assert client.hostname is None
+
+
+@pytest.mark.parametrize("missing", [False, True])
+def test_registry_helper_uses_docker_store(monkeypatch: MonkeyPatch, missing: bool) -> None:
+    from docker.credentials import CredentialsNotFound  # type: ignore[import-untyped]
+
+    store = Mock()
+    store.get.return_value = {"Username": "helper", "Secret": "secret"}
+    if missing:
+        store.get.side_effect = CredentialsNotFound("missing")
+    factory = Mock(return_value=store)
+    monkeypatch.setattr("docker.credentials.Store", factory)
+    monkeypatch.setattr("session_adapters.oci_adapter.OrasClient", _FakeOrasClient)
+    adapter = OCIAdapter(
+        ContainersAuth.model_validate(
+            {
+                "auths": {"registry.io/team": {"auth": "dXNlcjpwYXNz"}},
+                "credHelpers": {"registry.io": "test"},
+            }
+        )
+    )
+    request = adapter.parse_request(Request("GET", "oci://registry.io/team/repo").prepare())
+    client = adapter._get_oras_with_optional_auth(request)
+    factory.assert_called_once_with("test", environment=None)
+    store.get.assert_called_once_with("registry.io")
+    client.login.assert_called_once_with(
+        username="user" if missing else "helper",
+        password="pass" if missing else "secret",
+        hostname="registry.io",
+    )
+
+
+def test_failed_login_closes_client_and_returns_anonymous(monkeypatch: MonkeyPatch) -> None:
+    adapter = OCIAdapter(
+        ContainersAuth.model_validate({"auths": {"registry.io": {"auth": "dXNlcjpwYXNz"}}})
+    )
+    authenticated = _FakeOrasClient("registry.io")
+    authenticated.login.side_effect = RuntimeError("login failed")
+    anonymous = _FakeOrasClient()
+    monkeypatch.setattr(
+        "session_adapters.oci_adapter.OrasClient", Mock(side_effect=[authenticated, anonymous])
+    )
+    request = adapter.parse_request(Request("GET", "oci://registry.io/repo").prepare())
+    assert adapter._get_oras_with_optional_auth(request) is anonymous
+    authenticated.logout.assert_called_once_with("registry.io")
+    authenticated.session.close.assert_called_once()
+    anonymous.login.assert_not_called()
+
+
+def test_logout_clears_all_hosts_and_closes_session(monkeypatch: MonkeyPatch) -> None:
+    adapter, client = _new_adapter(monkeypatch)
+    client.auth._auth_config["auths"] = {"first.io": {}, "second.io": {}}
+    adapter._logout(client)
+    assert not client.auth._auth_config["auths"]
+    expected_logouts = 2
+    assert client.logout.call_count == expected_logouts
+    client.session.close.assert_called_once()
+
+
+def test_helper_failure_returns_anonymous(monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.setattr("docker.credentials.Store", Mock(side_effect=RuntimeError("unavailable")))
+    monkeypatch.setattr("session_adapters.oci_adapter.OrasClient", _FakeOrasClient)
+    adapter = OCIAdapter(ContainersAuth.model_validate({"credHelpers": {"registry.io": "missing"}}))
+    request = adapter.parse_request(Request("GET", "oci://registry.io/repo").prepare())
+    client = adapter._get_oras_with_optional_auth(request)
+    client.login.assert_not_called()
+    assert client.hostname is None
+
+
+def test_logout_continues_after_failure(monkeypatch: MonkeyPatch) -> None:
+    adapter, client = _new_adapter(monkeypatch)
+    client.auth._auth_config["auths"] = {"first.io": {}, "second.io": {}}
+    client.logout.side_effect = RuntimeError("logout failed")
+    adapter._logout(client)
+    assert {call.args[0] for call in client.logout.call_args_list} == {"first.io", "second.io"}
+    client.session.close.assert_called_once()
+
+
+@pytest.mark.parametrize("method", ["GET", "HEAD", "PUT", "DELETE"])
+def test_operations_close_session(monkeypatch: MonkeyPatch, method: str) -> None:
+    adapter, client = _new_adapter(monkeypatch)
+    adapter.send(Request(method, "oci://registry.io/repo").prepare())
+    client.session.close.assert_called_once()
+
+
+@pytest.mark.parametrize("scheme", ["", "http://", "https://", "oci://", "custom+registry://"])
+@pytest.mark.parametrize("repository", ["team/repo", "team-other/repo"])
+def test_auth_key_normalization_preserves_port_and_namespace(
+    monkeypatch: MonkeyPatch, scheme: str, repository: str
+) -> None:
+    adapter = OCIAdapter(
+        ContainersAuth.model_validate(
+            {"auths": {f"{scheme}registry.io:5000/team/": {"auth": "dXNlcjpwYXNz"}}}
+        )
+    )
+    monkeypatch.setattr("session_adapters.oci_adapter.OrasClient", _FakeOrasClient)
+    request = adapter.parse_request(
+        Request("GET", f"oci://registry.io:5000/{repository}:tag").prepare()
+    )
+    client = adapter._get_oras_with_optional_auth(request)
+    if repository == "team/repo":
+        client.login.assert_called_once_with(
+            username="user", password="pass", hostname="registry.io:5000"
+        )
+    else:
+        client.login.assert_not_called()
+        assert client.hostname is None
+
+
+@pytest.mark.parametrize("auths", [None, {}])
+def test_add_auth_initializes_config_and_resolves_credentials(auths: dict[str, Any] | None) -> None:
+    config = ContainersAuth(auths=auths)
+    add_auth("registry.io:5000", "usér", "päss:word", config)
+    adapter = OCIAdapter(containers_auth=config)
+    request = adapter.parse_request(Request("GET", "oci://registry.io:5000/team/repo").prepare())
+    resolved = adapter._resolve_request_auth(request)
+    assert resolved is not None
+    assert resolved["username"] == "usér"
+    assert resolved["password"] == "päss:word"
+    assert config.auths is not None
+    assert config.auths["registry.io:5000"].identitytoken is None
+
+
+def test_add_auth_replaces_only_target_entry() -> None:
+    config = ContainersAuth.model_validate(
+        {
+            "auths": {
+                "registry.io": {"identitytoken": "old-token"},
+                "other.io": {"auth": "dXNlcjpwYXNz"},
+            },
+            "credHelpers": {"other.io": "pass"},
+        }
+    )
+    entries = config.auths
+    assert entries is not None
+    other = entries["other.io"]
+    add_auth("registry.io", "new-user", "new-password", config)
+    assert config.auths is entries
+    assert config.auths["other.io"] is other
+    assert config.cred_helpers == {"other.io": "pass"}
+    assert config.auths["registry.io"].model_dump(exclude_none=True) == {
+        "auth": b64encode(b"new-user:new-password").decode("ascii")
+    }
