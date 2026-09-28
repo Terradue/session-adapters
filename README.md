@@ -2,6 +2,8 @@
 
 [![PyPI - Version](https://img.shields.io/pypi/v/session-adapters.svg)](https://pypi.org/project/session-adapters)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/session-adapters.svg)](https://pypi.org/project/session-adapters)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/Terradue/session-adapters/package.yaml?branch=develop&event=push&label=build&logo=githubactions)](https://github.com/Terradue/session-adapters/actions/workflows/package.yaml?query=branch%3Adevelop)
+[![Code coverage](https://img.shields.io/codecov/c/github/Terradue/session-adapters/develop?logo=codecov)](https://app.codecov.io/gh/Terradue/session-adapters/tree/develop)
 
 Requests transport adapters for bearer-authenticated `http(s)://`, `file://`,
 `s3://`, and `oci://` URLs.
