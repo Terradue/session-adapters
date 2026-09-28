@@ -15,19 +15,18 @@ session.mount("oci://", OCIAdapter(outdir="/tmp/oci-artifacts"))
 
 Starting with **0.6.0**, `OCIAdapter` accepts a `ContainersAuth` model instead
 of the `hostname`, `username`, and `password` constructor arguments. Migrate
-existing calls using the `add_auth` helper:
+existing calls using the `ContainersAuth.add_auth` method (available since **0.7.0**):
 
 ```python
 import os
 
 from session_adapters.conainers_auth import ContainersAuth
-from session_adapters.oci_adapter import add_auth
 
 hostname = "registry.example.com"
 username = os.environ["OCI_USERNAME"]
 password = os.environ["OCI_PASSWORD"]
 containers_auth = ContainersAuth()
-add_auth(hostname, username, password, containers_auth)
+containers_auth.add_auth(hostname, username, password)
 adapter = OCIAdapter(
     containers_auth=containers_auth,
     outdir="/tmp/oci-artifacts",
@@ -36,7 +35,7 @@ session.mount("oci://", adapter)
 ```
 
 The import path is `session_adapters.conainers_auth` (the module's current spelling).
-`add_auth` updates the supplied model in place and returns `None`. It creates
+`ContainersAuth.add_auth` updates the model in place and returns `None`. It creates
 `auths` if needed and replaces any entry for the supplied key, preserving other
 entries and helpers. Call it before constructing the adapter, which snapshots
 the configuration. The helper Base64-encodes `username:password`; Base64 is
@@ -66,9 +65,7 @@ Use a namespace or repository as the `auths` key to restrict credential matching
 
 ```python
 containers_auth = ContainersAuth()
-add_auth(
-    "registry.example.com/team/project", username, password, containers_auth
-)
+containers_auth.add_auth("registry.example.com/team/project", username, password)
 session.mount("oci://", OCIAdapter(containers_auth=containers_auth))
 ```
 

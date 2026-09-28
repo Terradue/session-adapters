@@ -20,12 +20,13 @@ The registry hostname now comes from each request URL.
 ## Adding inline credentials
 
 ```python
-from session_adapters.oci_adapter import add_auth
+from session_adapters.conainers_auth import ContainersAuth
 
-add_auth(hostname, username, password, containers_auth)
+containers_auth = ContainersAuth()
+containers_auth.add_auth(hostname, username, password)
 ```
 
-This module-level function accepts three strings and an existing `ContainersAuth` model.
+Since 0.7.0, call this method on an existing `ContainersAuth` model with three strings.
 It updates the model in place and returns `None`, initializing `auths` when absent.
 It stores an `Auth` entry containing the Base64-encoded UTF-8 `username:password`,
 replacing the entry at `hostname` while preserving other entries and helpers.
