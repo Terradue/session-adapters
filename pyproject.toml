@@ -40,7 +40,7 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
-  "boto3==1.43.59",
+  "boto3==1.43.102",
   "docker==7.2.0",
   "loguru==0.7.3",
   "oras==0.2.42",
