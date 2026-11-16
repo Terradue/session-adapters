@@ -42,7 +42,7 @@ classifiers = [
 dependencies = [
   "boto3==1.43.103",
   "docker==7.2.0",
-  "loguru==0.7.3",
+  "loguru==0.8.0",
   "oras==0.2.43",
   "pydantic>=2.13.4,<3",
   "python-magic==0.4.27",
